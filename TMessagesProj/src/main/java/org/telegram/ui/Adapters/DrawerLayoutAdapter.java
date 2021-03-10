@@ -247,6 +247,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
         int inviteIcon;
         int helpIcon;
         int peopleNearbyIcon;
+        int ethWalletIcon;
         if (eventType == 0) {
             newGroupIcon = R.drawable.menu_groups_ny;
             //newSecretIcon = R.drawable.menu_secret_ny;
@@ -258,6 +259,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             inviteIcon = R.drawable.menu_invite_ny;
             helpIcon = R.drawable.menu_help_ny;
             peopleNearbyIcon = R.drawable.menu_nearby_ny;
+            ethWalletIcon = R.drawable.eth_wallet;
         } else if (eventType == 1) {
             newGroupIcon = R.drawable.menu_groups_14;
             //newSecretIcon = R.drawable.menu_secret_14;
@@ -269,6 +271,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             inviteIcon = R.drawable.menu_secret_ny;
             helpIcon = R.drawable.menu_help;
             peopleNearbyIcon = R.drawable.menu_secret_14;
+            ethWalletIcon = R.drawable.eth_wallet;
         } else if (eventType == 2) {
             newGroupIcon = R.drawable.menu_groups_hw;
             //newSecretIcon = R.drawable.menu_secret_hw;
@@ -280,6 +283,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             inviteIcon = R.drawable.menu_invite_hw;
             helpIcon = R.drawable.menu_help_hw;
             peopleNearbyIcon = R.drawable.menu_secret_hw;
+            ethWalletIcon = R.drawable.eth_wallet;
         } else {
             newGroupIcon = R.drawable.menu_groups;
             //newSecretIcon = R.drawable.menu_secret;
@@ -291,6 +295,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             inviteIcon = R.drawable.menu_invite;
             helpIcon = R.drawable.menu_help;
             peopleNearbyIcon = R.drawable.menu_nearby;
+            ethWalletIcon = R.drawable.eth_wallet;
         }
         items.add(new Item(2, LocaleController.getString("NewGroup", R.string.NewGroup), newGroupIcon));
         //items.add(new Item(3, LocaleController.getString("NewSecretChat", R.string.NewSecretChat), newSecretIcon));
@@ -300,6 +305,7 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
         if (hasGps) {
             items.add(new Item(12, LocaleController.getString("PeopleNearby", R.string.PeopleNearby), peopleNearbyIcon));
         }
+        items.add(new Item(15, LocaleController.getString("ETHwallet", R.string.ETHwallet), ethWalletIcon));
         items.add(new Item(11, LocaleController.getString("SavedMessages", R.string.SavedMessages), savedIcon));
         items.add(new Item(8, LocaleController.getString("Settings", R.string.Settings), settingsIcon));
         items.add(null); // divider

@@ -579,6 +579,10 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         presentFragment(new ActionIntroActivity(ActionIntroActivity.ACTION_TYPE_NEARBY_LOCATION_ENABLED));
                     }
                     drawerLayoutContainer.closeDrawer(false);
+                }else if (id == 15){
+
+                    //TODO eth wallet
+
                 }
             }
         });
