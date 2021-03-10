@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">English</string>
     <string name="English">English</string>
     <string name="LanguageNameInEnglish">English</string>
@@ -3335,6 +3335,7 @@
     <string name="VoipSettingsRingtone">Ringtone</string>
     <string name="VoipRingtoneInfo">You can customize the ringtone used when this contact calls you on Telegram.</string>
     <string name="Calls">Calls</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="DeleteAllCalls">Delete all calls</string>
     <string name="DeleteCalls">Delete calls</string>
     <string name="DeleteCallsForEveryone">Delete for everyone</string>

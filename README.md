@@ -1,28 +1,16 @@
-## Telegram messenger for Android
+## Ethergram for Android
 
-[Telegram](https://telegram.org) is a messaging app with a focus on speed and security. It’s superfast, simple and free.
-This repo contains the official source code for [Telegram App for Android](https://play.google.com/store/apps/details?id=org.telegram.messenger).
+Ethergram is an UNOFFICIAL Telegram messenger Client that aims to integrate a user-friendly Ethereum wallet in the Telegram app.
 
-## Creating your Telegram Application
+### Compilation and deployment
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+Instructions reported directly from the [official Telegram repository](https://github.com/DrKLO/Telegram).
 
 1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
 2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
 3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
 3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
 4. Please remember to publish **your** code too in order to comply with the licences.
-
-### API, Protocol documentation
-
-Telegram API manuals: https://core.telegram.org/api
-
-MTproto protocol manuals: https://core.telegram.org/mtproto
-
-### Compilation Guide
-
-**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
 
 You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
 
@@ -34,6 +22,10 @@ You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
 6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
 7. You are ready to compile Telegram.
 
-### Localization
+**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
 
-We moved all translations to https://translations.telegram.org/en/android/. Please use it.
+###Description
+
+As of today, the master branch of this repository only contains the official Telegram source code, because no stable version of Ethergram has yet been published.
+The development continues on the dev branch.
+

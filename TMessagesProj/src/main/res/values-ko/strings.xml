@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">텔레그램</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">한국어</string>
     <string name="English">영어</string>
     <string name="LanguageNameInEnglish">한국어</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">벨소리</string>
     <string name="VoipRingtoneInfo">이 연락처에서 전화가 걸려올 때 울리는 벨소리를 맞춤하실 수 있습니다.</string>
     <string name="Calls">전화</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">위 사용자와 통화할 때에는 앞선 설정과 무관하게 단대단이 사용되거나 사용되지 않습니다.</string>
     <string name="P2PEnabledWith">단대단으로 통화할 사람</string>
     <string name="WhoCanCallMe">나에게 전화할 수 있는 사람</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">Nederlands</string>
     <string name="English">Engels</string>
     <string name="LanguageNameInEnglish">Dutch</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">Beltoon</string>
     <string name="VoipRingtoneInfo">Je kunt een aangepaste beltoon instellen voor Telegram-oproepen van dit contact.</string>
     <string name="Calls">Oproepen</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">Peer-to-peer in spraakoproepen zal niet worden gebruikt voor deze gebruikers, onafhankelijk van de instellingen hierboven.</string>
     <string name="P2PEnabledWith">Met wie is peer-to-peer actief?</string>
     <string name="WhoCanCallMe">Wie kan mij bellen?</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">Português (Brasil)</string>
     <string name="English">Inglês</string>
     <string name="LanguageNameInEnglish">Portuguese (Brazil)</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">Toque</string>
     <string name="VoipRingtoneInfo">Você pode personalizar o toque usado quando esse contato te ligar no Telegram.</string>
     <string name="Calls">Chamadas</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">Chamadas de ponta a ponta serão (ou não) estabelecidas com esses usuários, ignorando as opções do topo.</string>
     <string name="P2PEnabledWith">Usar ponta a ponta com</string>
     <string name="WhoCanCallMe">Quem pode me ligar?</string>

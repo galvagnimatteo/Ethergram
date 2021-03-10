@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">تيليجرام</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">العربية</string>
     <string name="English">الإنجليزية</string>
     <string name="LanguageNameInEnglish">Arabic</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">"نغمة الرنين "</string>
     <string name="VoipRingtoneInfo">يمكنك تخصيص نغمة الرنين عندما يتصل بك هذا المستخدم في تيليجرام.</string>
     <string name="Calls">المكالمات</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">لن يتم استخدام النِّدِّ للنِّدِّ في المكالمات مع هؤلاء المستخدمين بغض النظر عن الإعدادات أعلاه.</string>
     <string name="P2PEnabledWith">استخدام النِّدِّ للنِّد مع</string>
     <string name="WhoCanCallMe">من يمْكنه الاتصال بي؟</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">Español</string>
     <string name="English">Inglés</string>
     <string name="LanguageNameInEnglish">Spanish</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">Tono de llamada</string>
     <string name="VoipRingtoneInfo">Puedes personalizar el tono de llamada desde este contacto en Telegram.</string>
     <string name="Calls">Llamadas</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">El peer-to-peer en llamadas será o no será utilizado con estos usuarios, sin importar los ajustes de arriba.</string>
     <string name="P2PEnabledWith">Usar peer-to-peer con</string>
     <string name="WhoCanCallMe">¿Quién puede llamarme?</string>

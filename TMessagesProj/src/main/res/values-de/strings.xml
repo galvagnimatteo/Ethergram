@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">Ethergram</string>
+    <string name="AppNameBeta">Ethergram Beta</string>
     <string name="LanguageName">Deutsch</string>
     <string name="English">Englisch</string>
     <string name="LanguageNameInEnglish">German</string>
@@ -3194,6 +3194,7 @@
     <string name="VoipSettingsRingtone">Klingelton</string>
     <string name="VoipRingtoneInfo">Hier kannst du den Klingelton für Sprachanrufe festlegen.</string>
     <string name="Calls">Anrufe</string>
+    <string name="ETHwallet">Ethereum wallet</string>
     <string name="CustomP2PInfo">Unabhängig von den Einstellungen oben, wird Peer-to-Peer bei Anrufen mit diesen Benutzern verwendet oder nicht.\n</string>
     <string name="P2PEnabledWith">Peer-to-Peer benutzen mit</string>
     <string name="WhoCanCallMe">Wer kann mich anrufen?</string>
