@@ -4,3 +4,7 @@ build/
 obj/
 *.iml
 local.properties
+*.o
+**/.cxx
+google-services.json
+release.keystore
