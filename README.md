@@ -24,7 +24,7 @@ You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
 
 **Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
 
-###Description
+### Description
 
 As of today, the master branch of this repository only contains the official Telegram source code, because no stable version of Ethergram has yet been published.
 The development continues on the dev branch.
