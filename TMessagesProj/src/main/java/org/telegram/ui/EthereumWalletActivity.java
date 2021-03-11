@@ -1,42 +1,35 @@
 package org.telegram.ui;
 
-import android.animation.AnimatorSet;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
+import android.media.Image;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.recyclerview.widget.DefaultItemAnimator;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
+import org.ethereum.geth.Geth;
+import org.ethereum.geth.Node;
+import org.ethereum.geth.NodeConfig;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
-import org.telegram.messenger.UserConfig;
-import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Cells.ManageChatUserCell;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.RecyclerListView;
-import org.telegram.ui.Components.ShareLocationDrawable;
-import org.telegram.ui.Components.UndoView;
-import org.webrtc.Camera1Enumerator;
-import org.webrtc.Camera2Enumerator;
-import org.webrtc.CameraEnumerator;
-import org.webrtc.VideoCapturer;
+
+import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -48,24 +41,21 @@ public class EthereumWalletActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
 
-    public EthereumWalletActivity() {
+    File dir;
+
+    public EthereumWalletActivity(File dir) {
+
         super();
+
+        this.dir = dir;
+
     }
 
-    @Override
-    public boolean onFragmentCreate() {
-        return super.onFragmentCreate();
-    }
-
-    @Override
-    public void onFragmentDestroy() {
-        super.onFragmentDestroy();
-    }
 
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setBackgroundDrawable(null);
+        actionBar.setBackground(null);
         actionBar.setTitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         actionBar.setItemsColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), false);
         actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_listSelector), false);
@@ -124,6 +114,22 @@ public class EthereumWalletActivity extends BaseFragment {
 
         imageView = new CircleImageView(context);
         imageView.setImageResource(R.drawable.ethtoken);
+
+        imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(GethNodeHolder.getInstance().getNode() == null) {
+
+                    messageTextView.setText("Syncing your Ethereum node...");
+
+                    new CreateNode().execute();
+
+                }
+
+            }
+        });
+
         frameLayout.addView(imageView, LayoutHelper.createFrame(74, 74, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, top + 27, 0, 0));
 
         titleTextView = new TextView(context);
@@ -137,15 +143,48 @@ public class EthereumWalletActivity extends BaseFragment {
         messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         messageTextView.setGravity(Gravity.CENTER);
-        messageTextView.setText("Connecting...");
+
+        if(GethNodeHolder.getInstance().getNode() != null){
+
+            messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
+
+        }else{
+
+            messageTextView.setText("Click on the Ethereum logo to get started.");
+
+        }
+
         frameLayout.addView(messageTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 40, top + 161, 40, 27));
 
         return fragmentView;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+
+    private class CreateNode extends AsyncTask{
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            try {
+
+                NodeConfig nc = new NodeConfig();
+                Node node = Geth.newNode(dir + "/.ethNode", nc);
+                node.start();
+
+                GethNodeHolder gethNode = GethNodeHolder.getInstance();
+                gethNode.setNode(node);
+
+                messageTextView.setText("Node running on http://localhost:" + gethNode.getNode().getNodeInfo().getListenerPort());
+
+            } catch (Exception e) {
+
+                messageTextView.setText("Cannot create an Ethereum node. \n" + e.getMessage());
+
+            }
+
+            return null;
+        }
     }
 
 }
+
+
