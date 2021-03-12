@@ -6,10 +6,19 @@ import android.graphics.Paint;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.TypedValue;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
+import android.view.animation.ScaleAnimation;
+import android.view.animation.TranslateAnimation;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import org.ethereum.geth.Geth;
@@ -23,10 +32,13 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Point;
 
 import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+
+import static org.webrtc.ContextUtils.getApplicationContext;
 
 public class EthereumWalletActivity extends BaseFragment {
 
@@ -89,6 +101,11 @@ public class EthereumWalletActivity extends BaseFragment {
         fragmentView.setTag(Theme.key_windowBackgroundGray);
         FrameLayout frameLayout = (FrameLayout) fragmentView;
 
+        LinearLayout logolayout = new LinearLayout(context);
+
+        logolayout.setLayoutParams(new LinearLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        logolayout.setOrientation(LinearLayout.VERTICAL);
+
         actionBarBackground = new View(context) {
 
             private Paint paint = new Paint();
@@ -110,6 +127,8 @@ public class EthereumWalletActivity extends BaseFragment {
         imageView = new CircleImageView(context);
         imageView.setImageResource(R.drawable.ethtoken);
 
+        //FIXME this imageview should be on center horizontally, then add animation https://stackoverflow.com/questions/29911046/android-zoom-animation-using-animatorset
+
         imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -125,14 +144,14 @@ public class EthereumWalletActivity extends BaseFragment {
             }
         });
 
-        frameLayout.addView(imageView, LayoutHelper.createFrame(74, 74, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, top + 27, 0, 0));
+        logolayout.addView(imageView, LayoutHelper.createFrame(140, 140, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, top + 27, 0, 0));
 
         titleTextView = new TextView(context);
         titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
         titleTextView.setGravity(Gravity.CENTER);
         titleTextView.setText("Your Ethereum wallet");
-        frameLayout.addView(titleTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 52, top + 120, 52, 27));
+        logolayout.addView(titleTextView);
 
         messageTextView = new TextView(context);
         messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
@@ -149,7 +168,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
         }
 
-        frameLayout.addView(messageTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT, 40, top + 161, 40, 27));
+        logolayout.addView(messageTextView);
+        frameLayout.addView(logolayout);
 
         return fragmentView;
     }
