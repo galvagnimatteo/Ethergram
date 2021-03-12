@@ -1,4 +1,4 @@
-package org.telegram.ui;
+package org.telegram.ethergramUtils;
 
 import org.ethereum.geth.Account;
 import org.ethereum.geth.Node;
