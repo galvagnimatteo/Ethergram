@@ -4,24 +4,41 @@
     android:id="@+id/ethwalletheader"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_centerHorizontal="true"
     android:orientation="vertical">
 
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/ethlogo"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:layout_gravity="center_horizontal"
+
+    <org.telegram.ethergramUtils.RippleBackground
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
         android:layout_marginTop="80dp"
-        app:srcCompat="@drawable/ethtoken" />
+        app:rb_color="#98ECD1"
+        app:rb_duration="3000"
+        app:rb_radius="110dp"
+        app:rb_type="fillRipple"
+        app:rb_rippleAmount="1"
+        app:rb_scale="1.15">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/ethlogo"
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_centerInParent="true"
+            android:layout_marginTop="30dp"
+            app:srcCompat="@drawable/ethtoken" />
+
+    </org.telegram.ethergramUtils.RippleBackground>
 
     <TextView
         android:id="@+id/titleTextView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp" />
+        android:layout_height="wrap_content"/>
 
     <TextView
         android:id="@+id/messageTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
 </LinearLayout>

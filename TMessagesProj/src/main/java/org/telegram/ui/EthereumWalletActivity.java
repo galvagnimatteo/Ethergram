@@ -26,12 +26,11 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
-
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.Node;
 import org.ethereum.geth.NodeConfig;
 import org.telegram.ethergramUtils.GethNodeHolder;
+import org.telegram.ethergramUtils.RippleBackground;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
@@ -54,6 +53,7 @@ public class EthereumWalletActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
     private LinearLayout ethwalletheader;
+    private RippleBackground pulseanimation;
 
     File dir;
 
@@ -148,6 +148,9 @@ public class EthereumWalletActivity extends BaseFragment {
             }
         });
 
+        pulseanimation = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
+        pulseanimation.startRippleAnimation();
+
         titleTextView = (TextView) ethwalletheaderView.findViewById(R.id.titleTextView);
         titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         titleTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24);
@@ -186,16 +189,16 @@ public class EthereumWalletActivity extends BaseFragment {
         ObjectAnimator moveUpY = ObjectAnimator.ofFloat(ethlogoimage, "translationY", -155);
         moveUpY.setDuration(1000);
 
-        ObjectAnimator moveuptext = ObjectAnimator.ofFloat(titleTextView, "translationY", -305);
-        moveuptext.setDuration(1000);
-        ObjectAnimator moveuptext2 = ObjectAnimator.ofFloat(messageTextView, "translationY", -305);
-        moveuptext2.setDuration(1000);
+        ObjectAnimator moveuptitle = ObjectAnimator.ofFloat(titleTextView, "translationY", -310);
+        moveuptitle.setDuration(1000);
+        ObjectAnimator moveupmessage = ObjectAnimator.ofFloat(messageTextView, "translationY", -310);
+        moveupmessage.setDuration(1000);
 
         AnimatorSet scaleDown = new AnimatorSet();
-        AnimatorSet moveUp = new AnimatorSet();
 
-        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY).with(moveuptext).with(moveuptext2);
+        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY).with(moveuptitle).with(moveupmessage);
 
+        pulseanimation.stopRippleAnimation();
         scaleDown.start();
 
     }
@@ -212,8 +215,6 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 GethNodeHolder gethNode = GethNodeHolder.getInstance();
                 gethNode.setNode(node);
-
-                //FIXME add animation https://stackoverflow.com/questions/29911046/android-zoom-animation-using-animatorset
 
                 getParentActivity().runOnUiThread(new Runnable() {
 
