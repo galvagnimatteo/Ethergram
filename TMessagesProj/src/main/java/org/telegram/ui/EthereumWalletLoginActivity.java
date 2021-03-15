@@ -5,23 +5,17 @@ import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
+import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.util.TypedValue;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
-import android.view.animation.AnimationUtils;
-import android.view.animation.ScaleAnimation;
-import android.view.animation.TranslateAnimation;
+import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -37,15 +31,14 @@ import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-import static org.webrtc.ContextUtils.getApplicationContext;
-
-public class EthereumWalletActivity extends BaseFragment {
+public class EthereumWalletLoginActivity extends BaseFragment {
 
     protected View actionBarBackground;
 
@@ -53,13 +46,13 @@ public class EthereumWalletActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
     private LinearLayout ethwalletheader;
-    private RippleBackground pulseanimation;
-
     private LinearLayout mainLayout;
+
+    private EditTextBoldCursor password;
 
     File dir;
 
-    public EthereumWalletActivity(File dir) {
+    public EthereumWalletLoginActivity(File dir) {
 
         super();
         this.dir = dir;
@@ -95,7 +88,7 @@ public class EthereumWalletActivity extends BaseFragment {
         fragmentView = new FrameLayout(context) {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) actionBarBackground.getLayoutParams();
+                LayoutParams layoutParams = (LayoutParams) actionBarBackground.getLayoutParams();
                 layoutParams.height = ActionBar.getCurrentActionBarHeight() + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dp(3);
 
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -142,24 +135,15 @@ public class EthereumWalletActivity extends BaseFragment {
 
         ethlogoimage = (CircleImageView) ethwalletheaderView.findViewById(R.id.ethlogo);
         ethlogoimage.setImageResource(R.drawable.ethtoken);
+        RelativeLayout.LayoutParams logoparams = (RelativeLayout.LayoutParams) ethlogoimage.getLayoutParams();
+        logoparams.height = dpToPx(110, context);
+        logoparams.width = dpToPx(110, context);
+        ethlogoimage.setLayoutParams(logoparams);
 
-        ethlogoimage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if (GethNodeHolder.getInstance().getNode() == null) {
-
-                    messageTextView.setText("Syncing your Ethereum node...");
-
-                    new CreateNode().execute();
-
-                }
-
-            }
-        });
-
-        pulseanimation = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
-        pulseanimation.startRippleAnimation();
+        RippleBackground background = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
+        LinearLayout.LayoutParams bgparams = (LinearLayout.LayoutParams) background.getLayoutParams();
+        bgparams.height = dpToPx(140, context);
+        background.setLayoutParams(bgparams);
 
         titleTextView = (TextView) ethwalletheaderView.findViewById(R.id.titleTextView);
         titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -171,86 +155,40 @@ public class EthereumWalletActivity extends BaseFragment {
         messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         messageTextView.setGravity(Gravity.CENTER);
-
-        if (GethNodeHolder.getInstance().getNode() != null) {
-
-            scaleDownAnimation();
-            messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
-
-        } else {
-
-            messageTextView.setText("Click on the Ethereum logo to get started.");
-
-        }
+        messageTextView.setText("Login");
 
         mainLayout.addView(ethwalletheader);
 
         //------------------------------------HEADER END--------------------------------------------
+
+
+        password = new EditTextBoldCursor(context);
+        password.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        password.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        password.setCursorSize(AndroidUtilities.dp(20));
+        password.setCursorWidth(1.5f);
+        password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        password.setBackgroundDrawable(Theme.createEditTextDrawable(context, false));
+        password.setHint(LocaleController.getString("LoginPassword", R.string.LoginPassword));
+        password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        password.setMaxLines(1);
+        password.setPadding(0, 0, 0, 0);
+        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        password.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        password.setTypeface(Typeface.DEFAULT);
+        password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
+
+        mainLayout.addView(password);
 
         frameLayout.addView(mainLayout);
         return fragmentView;
 
     }
 
-    //Animation that scales down ETH logo.
-    private void scaleDownAnimation(){
-
-        ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(ethlogoimage, "scaleX", 0.5f);
-        ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(ethlogoimage, "scaleY", 0.5f);
-        scaleDownX.setDuration(1000);
-        scaleDownY.setDuration(1000);
-
-        ObjectAnimator moveUpY = ObjectAnimator.ofFloat(ethlogoimage, "translationY", -155); //TODO convert dp to pixels
-        moveUpY.setDuration(1000);
-
-        ObjectAnimator moveuptitle = ObjectAnimator.ofFloat(titleTextView, "translationY", -310);
-        moveuptitle.setDuration(1000);
-        ObjectAnimator moveupmessage = ObjectAnimator.ofFloat(messageTextView, "translationY", -310);
-        moveupmessage.setDuration(1000);
-
-        AnimatorSet scaleDown = new AnimatorSet();
-
-        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY);
-
-        scaleDown.start();
-
-    }
-
-    //Creating a node needs to be done in background to not block the UI.
-    private class CreateNode extends AsyncTask{
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-            try {
-
-                NodeConfig nc = new NodeConfig();
-                Node node = Geth.newNode(dir + "/.ethNode", nc);
-                node.start();
-
-                GethNodeHolder gethNode = GethNodeHolder.getInstance();
-                gethNode.setNode(node);
-
-                getParentActivity().runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-
-                        pulseanimation.stopRippleAnimation();
-                        scaleDownAnimation();
-
-                    }
-                });
-
-                messageTextView.setText("Node running on http://localhost:" + gethNode.getNode().getNodeInfo().getListenerPort());
-
-            } catch (Exception e) {
-
-                messageTextView.setText("Cannot create an Ethereum node. \n" + e.getMessage());
-
-            }
-
-            return null;
-        }
+    public static int dpToPx(int dp, Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return Math.round((float) dp * density);
     }
 
 }
