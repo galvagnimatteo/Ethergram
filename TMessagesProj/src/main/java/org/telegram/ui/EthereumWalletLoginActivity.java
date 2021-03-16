@@ -1,12 +1,9 @@
 package org.telegram.ui;
 
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
@@ -20,10 +17,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import org.ethereum.geth.Geth;
-import org.ethereum.geth.Node;
-import org.ethereum.geth.NodeConfig;
-import org.telegram.ethergramUtils.GethNodeHolder;
 import org.telegram.ethergramUtils.RippleBackground;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
@@ -38,16 +31,18 @@ import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import static org.telegram.ethergramUtils.RippleBackground.dpToPx;
+
 public class EthereumWalletLoginActivity extends BaseFragment {
 
     protected View actionBarBackground;
 
+    private LinearLayout ethwalletheader;
+    private LinearLayout loginLayout;
+
     private CircleImageView ethlogoimage;
     private TextView titleTextView;
     private TextView messageTextView;
-    private LinearLayout ethwalletheader;
-    private LinearLayout mainLayout;
-
     private EditTextBoldCursor password;
 
     File dir;
@@ -121,17 +116,11 @@ public class EthereumWalletLoginActivity extends BaseFragment {
         frameLayout.addView(actionBarBackground, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         frameLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        mainLayout = new LinearLayout(context);
-        LinearLayout.LayoutParams mainparams = new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainparams.gravity = Gravity.CENTER_HORIZONTAL;
-        mainLayout.setLayoutParams(mainparams);
-
         //---------------------------------------HEADER---------------------------------------------
 
         View ethwalletheaderView = LayoutInflater.from(context).inflate(R.layout.ethwalletheader, null);
 
-        ethwalletheader = (LinearLayout) ethwalletheaderView.findViewById(R.id.ethwalletheader);
+        ethwalletheader = (LinearLayout) ethwalletheaderView.findViewById(R.id.ethwalletheader); //header layout
 
         ethlogoimage = (CircleImageView) ethwalletheaderView.findViewById(R.id.ethlogo);
         ethlogoimage.setImageResource(R.drawable.ethtoken);
@@ -155,14 +144,19 @@ public class EthereumWalletLoginActivity extends BaseFragment {
         messageTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         messageTextView.setGravity(Gravity.CENTER);
-        messageTextView.setText("Login");
+        messageTextView.setText("Unlock your wallet");
 
-        mainLayout.addView(ethwalletheader);
+        frameLayout.addView(ethwalletheader);
 
         //------------------------------------HEADER END--------------------------------------------
 
+        //--------------------------------------LOGIN-----------------------------------------------
 
-        password = new EditTextBoldCursor(context);
+        View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
+
+        loginLayout = (LinearLayout) ethwalletcredentialsView.findViewById(R.id.ethwalletcredentials); //header layout
+
+        password = (EditTextBoldCursor) ethwalletcredentialsView.findViewById(R.id.password);
         password.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         password.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         password.setCursorSize(AndroidUtilities.dp(20));
@@ -179,16 +173,12 @@ public class EthereumWalletLoginActivity extends BaseFragment {
         password.setTypeface(Typeface.DEFAULT);
         password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
 
-        mainLayout.addView(password);
+        frameLayout.addView(loginLayout);
 
-        frameLayout.addView(mainLayout);
+        //-----------------------------------LOGIN END----------------------------------------------
+
         return fragmentView;
 
-    }
-
-    public static int dpToPx(int dp, Context context) {
-        float density = context.getResources().getDisplayMetrics().density;
-        return Math.round((float) dp * density);
     }
 
 }

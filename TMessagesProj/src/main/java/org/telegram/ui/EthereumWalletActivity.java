@@ -5,25 +5,14 @@ import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
 import android.util.TypedValue;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
-import android.view.animation.AnimationUtils;
-import android.view.animation.ScaleAnimation;
-import android.view.animation.TranslateAnimation;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import org.ethereum.geth.Geth;
@@ -43,7 +32,7 @@ import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-import static org.webrtc.ContextUtils.getApplicationContext;
+import static org.telegram.ethergramUtils.RippleBackground.dpToPx;
 
 public class EthereumWalletActivity extends BaseFragment {
 
@@ -56,6 +45,7 @@ public class EthereumWalletActivity extends BaseFragment {
     private RippleBackground pulseanimation;
 
     private LinearLayout mainLayout;
+    private Context context;
 
     File dir;
 
@@ -69,6 +59,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
+
+        this.context = context;
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setBackground(null);
@@ -143,11 +135,15 @@ public class EthereumWalletActivity extends BaseFragment {
         ethlogoimage = (CircleImageView) ethwalletheaderView.findViewById(R.id.ethlogo);
         ethlogoimage.setImageResource(R.drawable.ethtoken);
 
+        pulseanimation = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
+
         ethlogoimage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 if (GethNodeHolder.getInstance().getNode() == null) {
+
+                    pulseanimation.stopRippleAnimation();
 
                     messageTextView.setText("Syncing your Ethereum node...");
 
@@ -157,9 +153,6 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
         });
-
-        pulseanimation = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
-        pulseanimation.startRippleAnimation();
 
         titleTextView = (TextView) ethwalletheaderView.findViewById(R.id.titleTextView);
         titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -174,18 +167,25 @@ public class EthereumWalletActivity extends BaseFragment {
 
         if (GethNodeHolder.getInstance().getNode() != null) {
 
-            scaleDownAnimation();
+            pulseanimation.stopRippleAnimation();
+
+            scaleDownAnimation(context);
+
             messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
 
         } else {
+
+            pulseanimation.startRippleAnimation();
 
             messageTextView.setText("Click on the Ethereum logo to get started.");
 
         }
 
-        mainLayout.addView(ethwalletheader);
+        mainLayout.addView(ethwalletheader); //Header composed of icon and 2 textview
 
         //------------------------------------HEADER END--------------------------------------------
+
+
 
         frameLayout.addView(mainLayout);
         return fragmentView;
@@ -193,24 +193,24 @@ public class EthereumWalletActivity extends BaseFragment {
     }
 
     //Animation that scales down ETH logo.
-    private void scaleDownAnimation(){
+    private void scaleDownAnimation(Context context){
 
         ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(ethlogoimage, "scaleX", 0.5f);
         ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(ethlogoimage, "scaleY", 0.5f);
         scaleDownX.setDuration(1000);
         scaleDownY.setDuration(1000);
 
-        ObjectAnimator moveUpY = ObjectAnimator.ofFloat(ethlogoimage, "translationY", -155); //TODO convert dp to pixels
+        ObjectAnimator moveUpY = ObjectAnimator.ofFloat(ethlogoimage, "translationY", -dpToPx(55, context));
         moveUpY.setDuration(1000);
 
-        ObjectAnimator moveuptitle = ObjectAnimator.ofFloat(titleTextView, "translationY", -310);
+        ObjectAnimator moveuptitle = ObjectAnimator.ofFloat(titleTextView, "translationY", -dpToPx(110, context));
         moveuptitle.setDuration(1000);
-        ObjectAnimator moveupmessage = ObjectAnimator.ofFloat(messageTextView, "translationY", -310);
+        ObjectAnimator moveupmessage = ObjectAnimator.ofFloat(messageTextView, "translationY", -dpToPx(110, context));
         moveupmessage.setDuration(1000);
 
         AnimatorSet scaleDown = new AnimatorSet();
 
-        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY);
+        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY).with(moveuptitle).with(moveupmessage);
 
         scaleDown.start();
 
@@ -235,8 +235,7 @@ public class EthereumWalletActivity extends BaseFragment {
                     @Override
                     public void run() {
 
-                        pulseanimation.stopRippleAnimation();
-                        scaleDownAnimation();
+                        scaleDownAnimation(context);
 
                     }
                 });

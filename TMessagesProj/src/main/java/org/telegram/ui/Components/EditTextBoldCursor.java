@@ -35,6 +35,7 @@ import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.util.AttributeSet;
 import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.Menu;
@@ -164,6 +165,14 @@ public class EditTextBoldCursor extends EditText {
 
     public EditTextBoldCursor(Context context) {
         super(context);
+        if (Build.VERSION.SDK_INT >= 26) {
+            setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        }
+        init();
+    }
+
+    public EditTextBoldCursor(Context context, AttributeSet attrs) {
+        super(context, attrs);
         if (Build.VERSION.SDK_INT >= 26) {
             setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         }

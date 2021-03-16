@@ -581,7 +581,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     drawerLayoutContainer.closeDrawer(false);
                 }else if (id == 15){
 
-                    if(true){
+                    if(true){ //testing
 
                         presentFragment(new EthereumWalletLoginActivity(getFilesDir()));
                         drawerLayoutContainer.closeDrawer(false);
