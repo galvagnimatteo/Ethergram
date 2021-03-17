@@ -29,3 +29,5 @@ You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
 As of today, the master branch of this repository only contains the official Telegram source code, because no stable version of Ethergram has yet to be published.
 The development continues on the develop branch.
 
+### Donations
+ETH - 0xc8bd642a7f8089b0af282082b220c304cb4776c8
