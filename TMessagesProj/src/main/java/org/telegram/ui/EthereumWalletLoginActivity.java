@@ -44,6 +44,7 @@ public class EthereumWalletLoginActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
     private EditTextBoldCursor password;
+    private TextView button;
 
     File dir;
 
@@ -162,7 +163,6 @@ public class EthereumWalletLoginActivity extends BaseFragment {
         password.setCursorSize(AndroidUtilities.dp(20));
         password.setCursorWidth(1.5f);
         password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-        password.setBackgroundDrawable(Theme.createEditTextDrawable(context, false));
         password.setHint(LocaleController.getString("LoginPassword", R.string.LoginPassword));
         password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
@@ -172,6 +172,13 @@ public class EthereumWalletLoginActivity extends BaseFragment {
         password.setTransformationMethod(PasswordTransformationMethod.getInstance());
         password.setTypeface(Typeface.DEFAULT);
         password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
+
+        button = (TextView) ethwalletcredentialsView.findViewById(R.id.button);
+        button.setText("Unlock you wallet");
+        button.setTextColor(0xffffffff);
+        button.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        button.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(4), 0xff50a8eb, 0xff439bde));
 
         frameLayout.addView(loginLayout);
 

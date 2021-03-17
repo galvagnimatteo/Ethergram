@@ -44,7 +44,6 @@ public class EthereumWalletActivity extends BaseFragment {
     private LinearLayout ethwalletheader;
     private RippleBackground pulseanimation;
 
-    private LinearLayout mainLayout;
     private Context context;
 
     File dir;
@@ -120,12 +119,6 @@ public class EthereumWalletActivity extends BaseFragment {
         frameLayout.addView(actionBarBackground, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         frameLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        mainLayout = new LinearLayout(context);
-        LinearLayout.LayoutParams mainparams = new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainparams.gravity = Gravity.CENTER_HORIZONTAL;
-        mainLayout.setLayoutParams(mainparams);
-
         //---------------------------------------HEADER---------------------------------------------
 
         View ethwalletheaderView = LayoutInflater.from(context).inflate(R.layout.ethwalletheader, null);
@@ -181,13 +174,10 @@ public class EthereumWalletActivity extends BaseFragment {
 
         }
 
-        mainLayout.addView(ethwalletheader); //Header composed of icon and 2 textview
+        frameLayout.addView(ethwalletheader); //Header composed of icon and 2 textview
 
         //------------------------------------HEADER END--------------------------------------------
 
-
-
-        frameLayout.addView(mainLayout);
         return fragmentView;
 
     }
