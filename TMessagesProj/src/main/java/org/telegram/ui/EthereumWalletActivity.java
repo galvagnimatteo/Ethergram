@@ -15,7 +15,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.ethereum.geth.Account;
 import org.ethereum.geth.Geth;
+import org.ethereum.geth.KeyStore;
 import org.ethereum.geth.Node;
 import org.ethereum.geth.NodeConfig;
 import org.telegram.ethergramUtils.GethNodeHolder;
@@ -29,6 +31,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
+import java.nio.file.Files;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -138,9 +141,19 @@ public class EthereumWalletActivity extends BaseFragment {
 
                     pulseanimation.stopRippleAnimation();
 
-                    messageTextView.setText("Syncing your Ethereum node...");
+                    if (new File(dir + "/keystore").exists()) {
 
-                    new CreateNode().execute();
+                        messageTextView.setText("Syncing your Ethereum node...");
+
+                        new SyncNode().execute();
+
+                    }else{
+
+                        messageTextView.setText("Creating your account.");
+
+                        new CreateAccount().execute();
+
+                    }
 
                 }
 
@@ -158,7 +171,7 @@ public class EthereumWalletActivity extends BaseFragment {
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         messageTextView.setGravity(Gravity.CENTER);
 
-        if (GethNodeHolder.getInstance().getNode() != null) {
+        if (GethNodeHolder.getInstance().getNode() != null) { //Session started, already logged in
 
             pulseanimation.stopRippleAnimation();
 
@@ -166,11 +179,19 @@ public class EthereumWalletActivity extends BaseFragment {
 
             messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
 
-        } else {
+        } else { //Session not started, node not running, division between no account created and account created
 
             pulseanimation.startRippleAnimation();
 
-            messageTextView.setText("Click on the Ethereum logo to get started.");
+            if (new File(dir + "/keystore").exists()) {
+
+                messageTextView.setText("Click on the Ethereum logo to sync your node.");
+
+            }else{
+
+                messageTextView.setText("Click on the Ethereum logo to create an account.");
+
+            }
 
         }
 
@@ -206,11 +227,47 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
+    private class CreateAccount extends AsyncTask{
+
+        @Override
+        protected Object doInBackground(Object[] objects){
+
+            new SyncNode().doInBackground(objects);
+
+            try {
+
+                GethNodeHolder gethNodeHolder = GethNodeHolder.getInstance();
+                Node gethNode = gethNodeHolder.getNode();
+
+                if (gethNode != null) {
+
+                    KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+                    Account newAccount = ks.newAccount("Password");
+
+                    gethNodeHolder.setAccount(newAccount);
+
+                    //Account account = gethNodeHolder.getAccount();
+                    //accDisplayTextView.setText("Here is your Account Address: " + account.getAddress().getHex());
+                }
+
+            } catch (Exception e) {
+
+                messageTextView.setText("Cannot create an Ethereum wallet. \n" + e.getMessage());
+
+            }
+
+            return null;
+
+        }
+
+    }
+
     //Creating a node needs to be done in background to not block the UI.
-    private class CreateNode extends AsyncTask{
+    private class SyncNode extends AsyncTask{
 
         @Override
         protected Object doInBackground(Object[] objects) {
+
             try {
 
                 NodeConfig nc = new NodeConfig();

@@ -581,12 +581,12 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     drawerLayoutContainer.closeDrawer(false);
                 }else if (id == 15){
 
-                    if(true){ //testing
+                    if(false){ //if gethnode.getinstance do not exists but keystore file does, you need to unlock your wallet (ethwalletloginactivity)
 
                         presentFragment(new EthereumWalletLoginActivity(getFilesDir()));
                         drawerLayoutContainer.closeDrawer(false);
 
-                    }else {
+                    }else { //if getnode.getinstance do exist ethwalletactivity is opened (then it will be choosed if register an account or just sync the node)
 
                         presentFragment(new EthereumWalletActivity(getFilesDir()));
                         drawerLayoutContainer.closeDrawer(false);
