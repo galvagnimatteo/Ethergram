@@ -580,19 +580,11 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         presentFragment(new ActionIntroActivity(ActionIntroActivity.ACTION_TYPE_NEARBY_LOCATION_ENABLED));
                     }
                     drawerLayoutContainer.closeDrawer(false);
-                }else if (id == 15){
+                }else if (id == 15) {
 
-                    if(false &&GethNodeHolder.getInstance().getNode() == null && new File(getFilesDir() + "/keystore").exists()){ //if gethnode.getinstance do not exists but keystore file does, you need to unlock your wallet (ethwalletloginactivity)
+                    presentFragment(new EthereumWalletActivity(getFilesDir()));
+                    drawerLayoutContainer.closeDrawer(false);
 
-                        presentFragment(new EthereumWalletLoginActivity(getFilesDir()));
-                        drawerLayoutContainer.closeDrawer(false);
-
-                    }else { //if getnode.getinstance do exist ethwalletactivity is opened (then it will be choosed if register an account or just sync the node)
-
-                        presentFragment(new EthereumWalletActivity(getFilesDir()));
-                        drawerLayoutContainer.closeDrawer(false);
-
-                    }
                 }
             }
         });
