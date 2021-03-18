@@ -5,12 +5,16 @@ import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -28,6 +32,7 @@ import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.File;
@@ -45,6 +50,9 @@ public class EthereumWalletActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
     private LinearLayout ethwalletheader;
+    private LinearLayout registerlayout;
+    private EditTextBoldCursor password;
+    private TextView button;
     private RippleBackground pulseanimation;
 
     private Context context;
@@ -145,13 +153,14 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         messageTextView.setText("Syncing your Ethereum node...");
 
-                        new SyncNode().execute();
+                        new SyncNode(false).execute();
+
 
                     }else{
 
-                        messageTextView.setText("Creating your account.");
+                        messageTextView.setText("Creating your node...");
 
-                        new CreateAccount().execute();
+                        new SyncNode(true).execute();
 
                     }
 
@@ -177,7 +186,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             scaleDownAnimation(context);
 
-            messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
+            messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
 
         } else { //Session not started, node not running, division between no account created and account created
 
@@ -198,6 +207,48 @@ public class EthereumWalletActivity extends BaseFragment {
         frameLayout.addView(ethwalletheader); //Header composed of icon and 2 textview
 
         //------------------------------------HEADER END--------------------------------------------
+
+        //--------------------------------------LOGIN-----------------------------------------------
+
+        View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
+
+        registerlayout = (LinearLayout) ethwalletcredentialsView.findViewById(R.id.ethwalletcredentials); //header layout
+
+        password = (EditTextBoldCursor) ethwalletcredentialsView.findViewById(R.id.password);
+        password.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        password.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        password.setCursorSize(AndroidUtilities.dp(20));
+        password.setCursorWidth(1.5f);
+        password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        password.setHint("Password");
+        password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        password.setMaxLines(1);
+        password.setPadding(0, 0, 0, 0);
+        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        password.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        password.setTypeface(Typeface.DEFAULT);
+        password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
+
+        button = (TextView) ethwalletcredentialsView.findViewById(R.id.button);
+        button.setText("Confirm");
+        button.setTextColor(0xffffffff);
+        button.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        button.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(4), 0xff50a8eb, 0xff439bde));
+
+        button.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+
+                new CreateAccount(password.getText().toString()).execute();
+
+            }
+
+        });
+
+        //-----------------------------------LOGIN END----------------------------------------------
 
         return fragmentView;
 
@@ -229,10 +280,16 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private class CreateAccount extends AsyncTask{
 
+        private String password;
+
+        public CreateAccount(String password){
+
+            this.password = password;
+
+        }
+
         @Override
         protected Object doInBackground(Object[] objects){
-
-            new SyncNode().doInBackground(objects);
 
             try {
 
@@ -242,12 +299,15 @@ public class EthereumWalletActivity extends BaseFragment {
                 if (gethNode != null) {
 
                     KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-                    Account newAccount = ks.newAccount("Password");
+                    Account newAccount = ks.newAccount(this.password);
 
                     gethNodeHolder.setAccount(newAccount);
 
-                    //Account account = gethNodeHolder.getAccount();
+                    Account account = gethNodeHolder.getAccount();
                     //accDisplayTextView.setText("Here is your Account Address: " + account.getAddress().getHex());
+
+                    messageTextView.setText(account.getAddress().getHex());
+
                 }
 
             } catch (Exception e) {
@@ -264,6 +324,14 @@ public class EthereumWalletActivity extends BaseFragment {
 
     //Creating a node needs to be done in background to not block the UI.
     private class SyncNode extends AsyncTask{
+
+        private boolean displayRegisterLayout;
+
+        public SyncNode(boolean displayRegisterLayout){
+
+            this.displayRegisterLayout = displayRegisterLayout;
+
+        }
 
         @Override
         protected Object doInBackground(Object[] objects) {
@@ -285,9 +353,10 @@ public class EthereumWalletActivity extends BaseFragment {
                         scaleDownAnimation(context);
 
                     }
+
                 });
 
-                messageTextView.setText("Node running on http://localhost:" + gethNode.getNode().getNodeInfo().getListenerPort());
+                messageTextView.setText("Node running on http://localhost:" + gethNode.getNode().getNodeInfo().getListenerPort()); //TODO change text here
 
             } catch (Exception e) {
 
@@ -297,6 +366,33 @@ public class EthereumWalletActivity extends BaseFragment {
 
             return null;
         }
+
+        @Override
+        protected void onPostExecute(Object o){
+
+            if(displayRegisterLayout){
+
+                getParentActivity().runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        FrameLayout frameLayout = (FrameLayout) fragmentView;
+
+                        frameLayout.addView(registerlayout);
+
+                    }
+
+                });
+
+            }else{
+
+                //display transactions
+
+            }
+
+        }
+
     }
 
 }
