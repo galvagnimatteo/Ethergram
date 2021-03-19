@@ -1400,10 +1400,10 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 		Notification incomingNotification = builder.getNotification();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 			RemoteViews customView = new RemoteViews(getPackageName(), LocaleController.isRTL ? R.layout.call_notification_rtl : R.layout.call_notification);
-			customView.setTextViewText(R.id.name, name);
+			customView.setTextViewText(R.id.amount, name);
 			boolean subtitleVisible = true;
 			if (TextUtils.isEmpty(subText)) {
-				customView.setViewVisibility(R.id.subtitle, View.GONE);
+				customView.setViewVisibility(R.id.to_address, View.GONE);
 				if (UserConfig.getActivatedAccountsCount() > 1) {
 					TLRPC.User self = UserConfig.getInstance(currentAccount).getCurrentUser();
 					customView.setTextViewText(R.id.title, video ? LocaleController.formatString("VoipInVideoCallBrandingWithName", R.string.VoipInVideoCallBrandingWithName, ContactsController.formatName(self.first_name, self.last_name)) : LocaleController.formatString("VoipInCallBrandingWithName", R.string.VoipInCallBrandingWithName, ContactsController.formatName(self.first_name, self.last_name)));
@@ -1413,9 +1413,9 @@ public abstract class VoIPBaseService extends Service implements SensorEventList
 			} else {
 				if (UserConfig.getActivatedAccountsCount() > 1) {
 					TLRPC.User self = UserConfig.getInstance(currentAccount).getCurrentUser();
-					customView.setTextViewText(R.id.subtitle, LocaleController.formatString("VoipAnsweringAsAccount", R.string.VoipAnsweringAsAccount, ContactsController.formatName(self.first_name, self.last_name)));
+					customView.setTextViewText(R.id.to_address, LocaleController.formatString("VoipAnsweringAsAccount", R.string.VoipAnsweringAsAccount, ContactsController.formatName(self.first_name, self.last_name)));
 				} else {
-					customView.setViewVisibility(R.id.subtitle, View.GONE);
+					customView.setViewVisibility(R.id.to_address, View.GONE);
 				}
 				customView.setTextViewText(R.id.title, subText);
 			}
