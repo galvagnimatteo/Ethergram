@@ -27,9 +27,8 @@ import org.ethereum.geth.KeyStore;
 import org.ethereum.geth.Node;
 import org.ethereum.geth.NodeConfig;
 import org.telegram.ethergramUtils.GethNodeHolder;
-import org.telegram.ethergramUtils.RippleBackground;
-import org.telegram.ethergramUtils.TransactionsAdapter;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -37,34 +36,34 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
-import org.web3j.crypto.ECKeyPair;
-import org.web3j.crypto.Keys;
-import org.web3j.crypto.Wallet;
-import org.web3j.crypto.WalletFile;
 
 import java.io.File;
-import java.nio.file.Files;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-import static org.telegram.ethergramUtils.RippleBackground.dpToPx;
+import static org.webrtc.ContextUtils.getApplicationContext;
 
 public class EthereumWalletActivity extends BaseFragment {
 
+    private Context context;
     protected View actionBarBackground;
+
+    private LinearLayout mainLayout;
+
+    private LinearLayout headerLayout;
 
     private CircleImageView ethlogoimage;
     private TextView titleTextView;
     private TextView messageTextView;
-    private LinearLayout ethwalletheader;
+
     private LinearLayout passwordLayout;
-    private LinearLayout transactionsLayout;
-    private ListView transactions;
+
     private EditTextBoldCursor password;
     private TextView button;
-    private RippleBackground pulseanimation;
 
-    private Context context;
+    private LinearLayout transactionsLayout;
+
+    private ListView transactions;
 
     File dir;
 
@@ -80,6 +79,11 @@ public class EthereumWalletActivity extends BaseFragment {
     public View createView(Context context) {
 
         this.context = context;
+
+        mainLayout = new LinearLayout(context);
+        mainLayout.setOrientation(LinearLayout.VERTICAL);
+        FrameLayout.LayoutParams mainparams = new FrameLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
+        mainLayout.setLayoutParams(mainparams);
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setBackground(null);
@@ -132,51 +136,25 @@ public class EthereumWalletActivity extends BaseFragment {
                 int h = getMeasuredHeight() - AndroidUtilities.dp(3);
                 canvas.drawRect(0, 0, getMeasuredWidth(), h, paint);
                 parentLayout.drawHeaderShadow(canvas, h);
+
+                mainparams.setMargins(0, getMeasuredHeight(), 0, 0);
+                mainLayout.setLayoutParams(mainparams);
             }
         };
 
         actionBarBackground.setAlpha(0.0f);
         frameLayout.addView(actionBarBackground, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         frameLayout.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        frameLayout.addView(mainLayout);
 
         //---------------------------------------HEADER---------------------------------------------
 
         View ethwalletheaderView = LayoutInflater.from(context).inflate(R.layout.ethwalletheader, null);
 
-        ethwalletheader = (LinearLayout) ethwalletheaderView.findViewById(R.id.ethwalletheader);
+        headerLayout = (LinearLayout) ethwalletheaderView.findViewById(R.id.ethwalletheader);
 
         ethlogoimage = (CircleImageView) ethwalletheaderView.findViewById(R.id.ethlogo);
         ethlogoimage.setImageResource(R.drawable.ethtoken);
-
-        pulseanimation = (RippleBackground) ethwalletheaderView.findViewById(R.id.content);
-
-        ethlogoimage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if (GethNodeHolder.getInstance().getNode() == null) {
-
-                    pulseanimation.stopRippleAnimation();
-
-                    if (new File(dir + "/keystore").exists()) {
-
-                        messageTextView.setText("Syncing your Ethereum node...");
-
-                        new SyncNode(false).execute();
-
-
-                    }else{
-
-                        messageTextView.setText("Creating your node...");
-
-                        new SyncNode(true).execute();
-
-                    }
-
-                }
-
-            }
-        });
 
         titleTextView = (TextView) ethwalletheaderView.findViewById(R.id.titleTextView);
         titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -189,11 +167,11 @@ public class EthereumWalletActivity extends BaseFragment {
         messageTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         messageTextView.setGravity(Gravity.CENTER);
 
-        frameLayout.addView(ethwalletheader); //Header composed of icon and 2 textview
+        mainLayout.addView(headerLayout);
 
         //------------------------------------HEADER END--------------------------------------------
 
-        //--------------------------------------LOGIN-----------------------------------------------
+        //-------------------------------------PASSWORD---------------------------------------------
 
         View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
 
@@ -205,74 +183,93 @@ public class EthereumWalletActivity extends BaseFragment {
         password.setCursorSize(AndroidUtilities.dp(20));
         password.setCursorWidth(1.5f);
         password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-        password.setHint("Password");
         password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
         password.setMaxLines(1);
-        password.setPadding(0, 0, 0, 0);
+        password.setPadding(10, 0, 10, 20);
         password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         password.setTransformationMethod(PasswordTransformationMethod.getInstance());
         password.setTypeface(Typeface.DEFAULT);
         password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
 
         button = (TextView) ethwalletcredentialsView.findViewById(R.id.button);
-        button.setText("Confirm");
         button.setTextColor(0xffffffff);
         button.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
         button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         button.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(4), 0xff50a8eb, 0xff439bde));
 
-        //-----------------------------------LOGIN END----------------------------------------------
-
-        transactionsLayout.addView(transactions);
+        //----------------------------------PASSWORD END--------------------------------------------
 
         //-------------------------------------LOGIC------------------------------------------------
 
-        if (GethNodeHolder.getInstance().getNode() != null) { //Session started
+        if(GethNodeHolder.getInstance().getAccount() != null){ //user already logged
 
-            if(GethNodeHolder.getInstance().getAccount() != null){ //already logged in
+            messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
 
-                pulseanimation.stopRippleAnimation();
+        }else{
 
-                scaleDownAnimation(context);
+            if (new File(dir + "/keystore").exists()) { //login
 
-                messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
+                messageTextView.setText("Unlock your wallet");
 
-            }else if(new File(dir + "/keystore").exists()){ //node running but not logged in
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
 
-                pulseanimation.stopRippleAnimation();
+                        try {
 
-                scaleDownAnimation(context);
+                            KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
 
-                messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
+                            ks.unlock(ks.getAccounts().get(0), password.getText().toString());
 
-                loginAccountWithChangeLayout();
+                            GethNodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
 
-            }else{ //node running and account not created
+                            Account account = GethNodeHolder.getInstance().getAccount();
 
-                pulseanimation.stopRippleAnimation();
+                            messageTextView.setText(account.getAddress().getHex());
 
-                scaleDownAnimation(context);
+                            ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
 
-                messageTextView.setText("Node running on http://localhost:" + GethNodeHolder.getInstance().getNode().getNodeInfo().getListenerPort());
+                        }catch(Exception e){
 
-                createAccountWithChangeLayout();
+                            messageTextView.setText("Error while unlocking your Ethereum wallet.\n" + e.getStackTrace().toString());
+
+                        }
+
+                    }
+                });
+
+            } else { //account creation
+
+                messageTextView.setText("Create your wallet");
+
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                        try {
+
+                            KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+                            Account newAccount = ks.newAccount(password.getText().toString());
+
+                            GethNodeHolder.getInstance().setAccount(newAccount);
+
+                            messageTextView.setText(newAccount.getAddress().getHex());
+
+                            ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
+
+                        }catch(Exception e){
+
+                            messageTextView.setText("Error while creating an Ethereum wallet.\n" + e.getStackTrace().toString());
+
+                        }
+
+                    }
+                });
 
             }
 
-        } else { //Session not started, node not running
-
-            pulseanimation.startRippleAnimation();
-
-            if (new File(dir + "/keystore").exists()) { //Account already created, login
-
-                messageTextView.setText("Click on the Ethereum logo to sync your node.");
-
-            }else{ //Account does not exists, register
-
-                messageTextView.setText("Click on the Ethereum logo to create an account.");
-
-            }
+            mainLayout.addView(passwordLayout);
 
         }
 
@@ -280,203 +277,30 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    //Animation that scales down ETH logo.
-    private void scaleDownAnimation(Context context){
-
-        ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(ethlogoimage, "scaleX", 0.5f);
-        ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(ethlogoimage, "scaleY", 0.5f);
-        scaleDownX.setDuration(1000);
-        scaleDownY.setDuration(1000);
-
-        ObjectAnimator moveUpY = ObjectAnimator.ofFloat(ethlogoimage, "translationY", -dpToPx(55, context));
-        moveUpY.setDuration(1000);
-
-        ObjectAnimator moveuptitle = ObjectAnimator.ofFloat(titleTextView, "translationY", -dpToPx(110, context));
-        moveuptitle.setDuration(1000);
-        ObjectAnimator moveupmessage = ObjectAnimator.ofFloat(messageTextView, "translationY", -dpToPx(110, context));
-        moveupmessage.setDuration(1000);
-
-        AnimatorSet scaleDown = new AnimatorSet();
-
-        scaleDown.play(scaleDownX).with(scaleDownY).with(moveUpY).with(moveuptitle).with(moveupmessage);
-
-        scaleDown.start();
-
-    }
-
-    //Creating a node needs to be done in background to not block the UI.
+    //Syncing a node needs to be done in background to not block the UI.
     private class SyncNode extends AsyncTask{
-
-        private boolean displayRegisterLayout;
-
-        public SyncNode(boolean displayRegisterLayout){
-
-            this.displayRegisterLayout = displayRegisterLayout;
-
-        }
 
         @Override
         protected Object doInBackground(Object[] objects) {
 
-            syncWithChangeLayout();
+            try {
+
+                NodeConfig nc = new NodeConfig();
+                Node node = Geth.newNode(dir + "/.ethNode", nc);
+                node.start();
+
+                GethNodeHolder gethNode = GethNodeHolder.getInstance();
+                gethNode.setNode(node);
+
+            } catch (Exception e) {
+
+                //display error
+
+            }
 
             return null;
-        }
-
-        @Override
-        protected void onPostExecute(Object o){
-
-            if(displayRegisterLayout){ //here it is decided what layout to show, login or set password
-
-                createAccountWithChangeLayout();
-
-            }else{
-
-                loginAccountWithChangeLayout();
-
-            }
 
         }
-
-    }
-
-    private void syncWithChangeLayout(){
-
-        try {
-
-            NodeConfig nc = new NodeConfig();
-            Node node = Geth.newNode(dir + "/.ethNode", nc);
-            node.start();
-
-            GethNodeHolder gethNode = GethNodeHolder.getInstance();
-            gethNode.setNode(node);
-
-            getParentActivity().runOnUiThread(new Runnable() {
-
-                @Override
-                public void run() {
-
-                    scaleDownAnimation(context);
-
-                }
-
-            });
-
-            messageTextView.setText("Node running on http://localhost:" + gethNode.getNode().getNodeInfo().getListenerPort());
-
-        } catch (Exception e) {
-
-            messageTextView.setText("Cannot create an Ethereum node. \n" + e.getMessage());
-
-        }
-
-    }
-
-    private void createAccountWithChangeLayout(){
-
-        getParentActivity().runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() { //setup creating account layout
-
-                FrameLayout frameLayout = (FrameLayout) fragmentView;
-
-                button.setOnClickListener(new View.OnClickListener() {
-
-                    @Override
-                    public void onClick(View v) {
-
-                        try {
-
-                            GethNodeHolder gethNodeHolder = GethNodeHolder.getInstance();
-                            Node gethNode = gethNodeHolder.getNode();
-
-                            if (gethNode != null) {
-
-                                //https://medium.com/kinblog/web3j-vs-geth-code-comparison-9a228509a70b geth vs web3j
-                                KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-                                Account newAccount = ks.newAccount(password.getText().toString());
-
-                                gethNodeHolder.setAccount(newAccount);
-
-                                Account account = gethNodeHolder.getAccount();
-
-                                messageTextView.setText(account.getAddress().getHex());
-
-                                ((ViewManager)passwordLayout.getParent()).removeView(passwordLayout);
-
-                            }
-
-                        } catch (Exception e) {
-
-                            messageTextView.setText("Cannot create an Ethereum wallet. \n" + e.getMessage());
-
-                        }
-
-                    }
-
-                });
-
-                frameLayout.addView(passwordLayout);
-
-            }
-
-        });
-
-    }
-
-    private void loginAccountWithChangeLayout(){
-
-        getParentActivity().runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() { //setup account login layout
-
-                FrameLayout frameLayout = (FrameLayout) fragmentView;
-
-                button.setText("Unlock wallet");
-
-                button.setOnClickListener(new View.OnClickListener() {
-
-                    @Override
-                    public void onClick(View v) { //connect to account and check password
-
-                        try {
-
-                            GethNodeHolder gethNodeHolder = GethNodeHolder.getInstance();
-                            Node gethNode = gethNodeHolder.getNode();
-
-                            if (gethNode != null) {
-
-                                KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-
-                                ks.unlock(ks.getAccounts().get(0), password.getText().toString());
-
-                                gethNodeHolder.setAccount(ks.getAccounts().get(0));
-
-                                Account account = gethNodeHolder.getAccount();
-
-                                messageTextView.setText(account.getAddress().getHex());
-
-                                ((ViewManager)passwordLayout.getParent()).removeView(passwordLayout);
-
-                            }
-
-                        } catch (Exception e) {
-
-                            messageTextView.setText("Cannot connect to the Ethereum wallet. \n" + e.getMessage());
-
-                        }
-
-                    }
-
-                });
-
-                frameLayout.addView(passwordLayout);
-
-            }
-
-        });
 
     }
 

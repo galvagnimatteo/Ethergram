@@ -7,38 +7,25 @@
     android:layout_centerHorizontal="true"
     android:orientation="vertical">
 
-
-    <org.telegram.ethergramUtils.RippleBackground
-        android:id="@+id/content"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="visible"
-        android:layout_marginTop="80dp"
-        app:rb_color="#98ECD1"
-        app:rb_duration="3000"
-        app:rb_radius="110dp"
-        app:rb_type="fillRipple"
-        app:rb_rippleAmount="1"
-        app:rb_scale="1.15">
-
-        <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/ethlogo"
-            android:layout_width="220dp"
-            android:layout_height="220dp"
-            android:layout_centerInParent="true"
-            android:layout_marginTop="30dp"
-            app:srcCompat="@drawable/ethtoken" />
-
-    </org.telegram.ethergramUtils.RippleBackground>
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/ethlogo"
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="30dp"
+        app:srcCompat="@drawable/ethtoken" />
 
     <TextView
         android:id="@+id/titleTextView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:hint="Password" />
 
     <TextView
         android:id="@+id/messageTextView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"/>
 
 </LinearLayout>
