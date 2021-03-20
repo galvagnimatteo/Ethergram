@@ -22,8 +22,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import org.ethereum.geth.Account;
+import org.ethereum.geth.Address;
+import org.ethereum.geth.BigInt;
 import org.ethereum.geth.Enode;
 import org.ethereum.geth.Enodes;
+import org.ethereum.geth.EthereumClient;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
 import org.ethereum.geth.Node;
@@ -63,9 +66,10 @@ public class EthereumWalletActivity extends BaseFragment {
     private EditTextBoldCursor password;
     private TextView button;
 
-    private LinearLayout transactionsLayout;
+    private LinearLayout walletViewer;
 
-    private ListView transactions;
+    private ListView transactionsListView;
+    private TextView balanceTextView;
 
     File dir;
 
@@ -202,11 +206,25 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //----------------------------------PASSWORD END--------------------------------------------
 
+        //------------------------------------VIEWER------------------------------------------------
+
+        View ethwalletviewerView = LayoutInflater.from(context).inflate(R.layout.ethwalletviewer, null);
+
+        walletViewer = (LinearLayout) ethwalletviewerView.findViewById(R.id.ethwalletviewer);
+
+        balanceTextView = (TextView) ethwalletviewerView.findViewById(R.id.balance);
+
+        transactionsListView = (ListView) ethwalletviewerView.findViewById(R.id.transactionsListView);
+
+        //----------------------------------END VIEWER----------------------------------------------
+
         //-------------------------------------LOGIC------------------------------------------------
 
         if(GethNodeHolder.getInstance().getAccount() != null){ //user already logged
 
             messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
+
+            fillWalletViewer();
 
         }else{
 
@@ -218,25 +236,7 @@ public class EthereumWalletActivity extends BaseFragment {
                     @Override
                     public void onClick(View v) {
 
-                        try {
-
-                            KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-
-                            ks.unlock(ks.getAccounts().get(0), password.getText().toString());
-
-                            GethNodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
-
-                            Account account = GethNodeHolder.getInstance().getAccount();
-
-                            messageTextView.setText(account.getAddress().getHex());
-
-                            ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
-
-                        }catch(Exception e){
-
-                            messageTextView.setText("Error while unlocking your Ethereum wallet.\n" + e.getStackTrace().toString());
-
-                        }
+                        new PasswordTask(true).execute();
 
                     }
                 });
@@ -249,22 +249,7 @@ public class EthereumWalletActivity extends BaseFragment {
                     @Override
                     public void onClick(View v) {
 
-                        try {
-
-                            KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-                            Account newAccount = ks.newAccount(password.getText().toString());
-
-                            GethNodeHolder.getInstance().setAccount(newAccount);
-
-                            messageTextView.setText(newAccount.getAddress().getHex());
-
-                            ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
-
-                        }catch(Exception e){
-
-                            messageTextView.setText("Error while creating an Ethereum wallet.\n" + e.getStackTrace().toString());
-
-                        }
+                        new PasswordTask(false).execute();
 
                     }
                 });
@@ -279,12 +264,118 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
+    //-------------------------------------Async Tasks----------------------------------------------
+
+    //Keystore operations needs to be done in async mode to not stop the UI.
+    private class PasswordTask extends AsyncTask{
+
+        boolean login;
+
+        public PasswordTask(boolean login){
+
+            this.login = login;
+
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+
+            if(login){
+
+                try {
+
+                    KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+
+                    ks.unlock(ks.getAccounts().get(0), password.getText().toString());
+
+                    GethNodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
+
+                    return true;
+
+                }catch(Exception e){
+
+                    getParentActivity().runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+
+                            messageTextView.setText("Error while unlocking your Ethereum wallet.\n" + e.getMessage());
+
+                        }
+
+                    });
+
+                    return false;
+
+                }
+
+            }else{ //registration
+
+                try {
+
+                    KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+                    Account newAccount = ks.newAccount(password.getText().toString());
+
+                    GethNodeHolder.getInstance().setAccount(newAccount);
+
+                    return true;
+
+                }catch(Exception e){
+
+                    getParentActivity().runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+
+                            messageTextView.setText("Error while creating an Ethereum wallet.\n" + e.getMessage());
+
+                        }
+
+                    });
+
+                    return false;
+
+                }
+
+            }
+
+        }
+
+        //On post execute it is displayed the wallet viewer.
+        @Override
+        public void onPostExecute(Object result){
+
+            boolean isSucceeded = (boolean) result;
+
+            if(isSucceeded){ //If account is created or unlocked the node can be started.
+
+                getParentActivity().runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
+
+                        messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
+
+                    }
+
+                });
+
+                new StartNode(false).execute();
+
+            }
+
+        }
+
+    }
+
     //Syncing a node needs to be done in background to not block the UI.
-    private class SyncNode extends AsyncTask{
+    private class StartNode extends AsyncTask{
 
         private boolean rinkeby;
 
-        public SyncNode(boolean rinkeby){
+        public StartNode(boolean rinkeby){
 
             this.rinkeby = rinkeby;
 
@@ -321,13 +412,69 @@ public class EthereumWalletActivity extends BaseFragment {
                 GethNodeHolder gethNode = GethNodeHolder.getInstance();
                 gethNode.setNode(node);
 
+                return true;
+
             } catch (Exception e) {
 
-                //display error
+                messageTextView.setText("Cannot start node\n" + e.getMessage());
+
+                return false;
 
             }
 
-            return null;
+        }
+
+        //TODO run this when node already running
+        @Override
+        public void onPostExecute(Object result){
+
+            boolean isSucceeded = (boolean) result;
+
+            if(isSucceeded){ //If starting node is succeeded
+
+                fillWalletViewer();
+
+            }
+
+        }
+
+    }
+
+    public void fillWalletViewer(){
+
+        try {
+
+            Address address = GethNodeHolder.getInstance().getAccount().getAddress();
+            EthereumClient ethereumClient = GethNodeHolder.getInstance().getNode().getEthereumClient();
+            long blockNumber = -1; //Last block = updated information
+
+            BigInt balance = ethereumClient.getBalanceAt(Geth.newContext(), Geth.newAddressFromHex("0xbeDfb14028683F333688b0E6699682Cf0A4c990a"), blockNumber);
+
+            getParentActivity().runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    balanceTextView.setText((Long.parseLong(balance.toString())*0.000000000000000001) + " ETH"); //returns 0?? //FIXME
+
+                    mainLayout.addView(walletViewer);
+
+                }
+
+            });
+
+        }catch(Exception e){
+
+            getParentActivity().runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    messageTextView.setText("Cannot fetch balance\n" + e.getMessage());
+
+                }
+
+            });
 
         }
 
