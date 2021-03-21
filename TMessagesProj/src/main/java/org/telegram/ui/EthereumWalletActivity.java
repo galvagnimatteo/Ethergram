@@ -1,7 +1,5 @@
 package org.telegram.ui;
 
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -22,18 +20,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import org.ethereum.geth.Account;
-import org.ethereum.geth.Address;
-import org.ethereum.geth.BigInt;
-import org.ethereum.geth.Enode;
-import org.ethereum.geth.Enodes;
-import org.ethereum.geth.EthereumClient;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
-import org.ethereum.geth.Node;
-import org.ethereum.geth.NodeConfig;
-import org.telegram.ethergramUtils.GethNodeHolder;
+import org.telegram.ethergramUtils.NodeHolder;
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -41,12 +32,21 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.Web3jFactory;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.utils.Convert;
 
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-
-import static org.webrtc.ContextUtils.getApplicationContext;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 public class EthereumWalletActivity extends BaseFragment {
 
@@ -220,9 +220,9 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //-------------------------------------LOGIC------------------------------------------------
 
-        if(GethNodeHolder.getInstance().getAccount() != null){ //user already logged
+        if(NodeHolder.getInstance().getAccount() != null){ //user already logged
 
-            messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
+            messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
             fillWalletViewer();
 
@@ -288,7 +288,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
                     ks.unlock(ks.getAccounts().get(0), password.getText().toString());
 
-                    GethNodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
+                    NodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
 
                     return true;
 
@@ -313,10 +313,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 try {
 
-                    KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
-                    Account newAccount = ks.newAccount(password.getText().toString());
+                    KeyStore keyStore = Geth.newKeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
 
-                    GethNodeHolder.getInstance().setAccount(newAccount);
+                    Account account = keyStore.newAccount(password.getText().toString());
+
+                    NodeHolder.getInstance().setAccount(account);
 
                     return true;
 
@@ -356,13 +357,13 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
 
-                        messageTextView.setText(GethNodeHolder.getInstance().getAccount().getAddress().getHex());
+                        messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
                     }
 
                 });
 
-                new StartNode(false).execute();
+                new ConnectNode(true).execute();
 
             }
 
@@ -371,11 +372,11 @@ public class EthereumWalletActivity extends BaseFragment {
     }
 
     //Syncing a node needs to be done in background to not block the UI.
-    private class StartNode extends AsyncTask{
+    private class ConnectNode extends AsyncTask{
 
         private boolean rinkeby;
 
-        public StartNode(boolean rinkeby){
+        public ConnectNode(boolean rinkeby){
 
             this.rinkeby = rinkeby;
 
@@ -384,39 +385,38 @@ public class EthereumWalletActivity extends BaseFragment {
         @Override
         protected Object doInBackground(Object[] objects) {
 
+            Web3j web3j;
+
             try {
 
-                NodeConfig config = new NodeConfig();
-                Node node;
+                if (rinkeby) {
 
-                if(rinkeby){
+                    web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
 
-                    Enodes bootnodes = new Enodes();
-                    bootnodes.append(new Enode("enode://a24ac7c5484ef4ed0c5eb2d36620ba4e4aa13b8c84684e1b4aab0cebea2ae45cb4d375b77eab56516d34bfbd3c1a833fc51296ff084b770b94fb9028c4d25ccf@52.169.42.101:30303"));
+                } else {
 
-                    config.setBootstrapNodes(bootnodes);
-                    config.setEthereumNetworkID(4);
-                    config.setEthereumGenesis("{\"config\":{\"chainId\":4,\"homesteadBlock\":1,\"eip150Block\":2,\"eip150Hash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"eip155Block\":3,\"eip158Block\":3,\"byzantiumBlock\":1035301,\"constantinopleBlock\":3660663,\"petersburgBlock\":4321234,\"istanbulBlock\":5435345,\"clique\":{\"period\":15,\"epoch\":30000}},\"nonce\":\"0x0\",\"timestamp\":\"0x58ee40ba\",\"extraData\":\"0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"gasLimit\":\"0x47b760\",\"difficulty\":\"0x1\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0000000000000000000000000000000000000000\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000001\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000002\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000003\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000004\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000005\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000006\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000007\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000008\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000009\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000000f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000010\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000011\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000012\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000013\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000014\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000015\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000016\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000017\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000018\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000019\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000001f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000020\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000021\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000022\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000023\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000024\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000025\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000026\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000027\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000028\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000029\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000002f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000030\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000031\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000032\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000033\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000034\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000035\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000036\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000037\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000038\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000039\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000003f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000040\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000041\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000042\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000043\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000044\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000045\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000046\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000047\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000048\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000049\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000004f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000050\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000051\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000052\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000053\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000054\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000055\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000056\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000057\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000058\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000059\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000005f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000060\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000061\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000062\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000063\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000064\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000065\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000066\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000067\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000068\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000069\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000006f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000070\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000071\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000072\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000073\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000074\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000075\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000076\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000077\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000078\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000079\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000007f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000080\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000081\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000082\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000083\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000084\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000085\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000086\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000087\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000088\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000089\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000008f\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000090\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000091\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000092\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000093\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000094\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000095\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000096\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000097\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000098\":{\"balance\":\"0x1\"},\"0000000000000000000000000000000000000099\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009a\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009b\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009c\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009d\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009e\":{\"balance\":\"0x1\"},\"000000000000000000000000000000000000009f\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000a9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000aa\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ab\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ac\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ad\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ae\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000af\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000b9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ba\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000bb\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000bc\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000bd\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000be\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000bf\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000c9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ca\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000cb\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000cc\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000cd\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ce\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000cf\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000d9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000da\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000db\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000dc\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000dd\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000de\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000df\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000e9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ea\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000eb\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ec\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ed\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ee\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ef\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f0\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f1\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f2\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f3\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f4\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f5\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f6\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f7\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f8\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000f9\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000fa\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000fb\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000fc\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000fd\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000fe\":{\"balance\":\"0x1\"},\"00000000000000000000000000000000000000ff\":{\"balance\":\"0x1\"},\"31b98d14007bdee637298086988a0bbd31184523\":{\"balance\":\"0x200000000000000000000000000000000000000000000000000000000000000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}");
-                    config.setEthereumNetStats("ethergram:Respect my authoritah!@stats.rinkeby.io");
-
-                    node = Geth.newNode(dir + "/.rinkebyNode", config);
-
-                }else{
-
-                    node = Geth.newNode(dir + "/.ethNode", config);
+                    web3j = Web3jFactory.build(new HttpService("https://mainnet.infura.io/v3/" + BuildVars.INFURA_API));
 
                 }
 
-                node.start();
-
-                GethNodeHolder gethNode = GethNodeHolder.getInstance();
-                gethNode.setNode(node);
+                NodeHolder.getInstance().setNode(web3j);
 
                 return true;
 
-            } catch (Exception e) {
+            }catch (Exception e){
 
-                messageTextView.setText("Cannot start node\n" + e.getMessage());
+                getParentActivity().runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        messageTextView.setText("Cannot connect to node\n" + e.getMessage());
+
+                        mainLayout.addView(walletViewer);
+
+                    }
+
+                });
 
                 return false;
 
@@ -424,7 +424,6 @@ public class EthereumWalletActivity extends BaseFragment {
 
         }
 
-        //TODO run this when node already running
         @Override
         public void onPostExecute(Object result){
 
@@ -444,24 +443,28 @@ public class EthereumWalletActivity extends BaseFragment {
 
         try {
 
-            Address address = GethNodeHolder.getInstance().getAccount().getAddress();
-            EthereumClient ethereumClient = GethNodeHolder.getInstance().getNode().getEthereumClient();
-            long blockNumber = -1; //Last block = updated information
+            NodeHolder.getInstance().getNode().ethGetBalance(NodeHolder.getInstance().getAccount().getAddress().getHex(), DefaultBlockParameterName.LATEST)
+                    .observable()
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(balance -> {
+                        final BigInteger bigInt = balance.getBalance();
+                        final BigDecimal etherBalance = Convert.fromWei(bigInt.toString(), Convert.Unit.ETHER);
 
-            BigInt balance = ethereumClient.getBalanceAt(Geth.newContext(), Geth.newAddressFromHex("0xbeDfb14028683F333688b0E6699682Cf0A4c990a"), blockNumber);
+                        getParentActivity().runOnUiThread(new Runnable() {
 
-            getParentActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
 
-                @Override
-                public void run() {
+                                balanceTextView.setText(etherBalance + " ETH"); //returns 0?? //FIXME
 
-                    balanceTextView.setText((Long.parseLong(balance.toString())*0.000000000000000001) + " ETH"); //returns 0?? //FIXME
+                                mainLayout.addView(walletViewer);
 
-                    mainLayout.addView(walletViewer);
+                            }
 
-                }
+                        });
 
-            });
+                    });
 
         }catch(Exception e){
 

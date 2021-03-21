@@ -1,29 +1,30 @@
 package org.telegram.ethergramUtils;
 
 import org.ethereum.geth.Account;
-import org.ethereum.geth.Node;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
 
-public class GethNodeHolder{
+public class NodeHolder {
 
-    private Node node;
+    private Web3j node;
     private Account account;
-    private static GethNodeHolder instance = null;
+    private static NodeHolder instance = null;
 
-    private GethNodeHolder() {
+    private NodeHolder() {
     }
 
-    public static GethNodeHolder getInstance() {
+    public static NodeHolder getInstance() {
         if (instance == null) {
-            instance = new GethNodeHolder();
+            instance = new NodeHolder();
         }
         return instance;
     }
 
-    public Node getNode() {
+    public Web3j getNode() {
         return node;
     }
 
-    public void setNode(Node node) {
+    public void setNode(Web3j node) {
         this.node = node;
     }
 
