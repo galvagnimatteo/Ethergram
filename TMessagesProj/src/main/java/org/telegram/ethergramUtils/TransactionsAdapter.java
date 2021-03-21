@@ -7,17 +7,21 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import org.ethereum.geth.Transaction;
+import org.ethereum.geth.Node;
 import org.ethereum.geth.Transactions;
 import org.telegram.messenger.R;
+import org.web3j.protocol.core.methods.response.Transaction;
+import org.web3j.utils.Convert;
+
+import java.util.ArrayList;
 
 public class TransactionsAdapter extends BaseAdapter {
 
     Context context;
-    Transactions transactions;
+    ArrayList<Transaction> transactions;
     private static LayoutInflater inflater = null;
 
-    public TransactionsAdapter(Context context, Transactions transactions) {
+    public TransactionsAdapter(Context context, ArrayList<Transaction> transactions) {
 
         this.context = context;
         this.transactions = transactions;
@@ -33,7 +37,7 @@ public class TransactionsAdapter extends BaseAdapter {
     @Override
     public Object getItem(int position) {
         try {
-            return transactions.get((long)position);
+            return transactions.get(position);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,16 +56,27 @@ public class TransactionsAdapter extends BaseAdapter {
 
         if (vi == null) {
 
-            vi = inflater.inflate(R.layout.ethtransaction, null);
+            vi = inflater.inflate(R.layout.testtransaction, null);
 
         }
 
-        TextView amount = (TextView) vi.findViewById(R.id.amount);
-        TextView to_address = (TextView) vi.findViewById(R.id.to_address);
+        TextView amount = (TextView) vi.findViewById(R.id.title);
+        TextView to_address = (TextView) vi.findViewById(R.id.subtitle);
 
         try {
-            amount.setText(transactions.get(position).getValue().string());
-            to_address.setText(transactions.get(position).getTo().getHex());
+
+            amount.setText(Convert.fromWei(transactions.get(position).getValueRaw(), Convert.Unit.ETHER) + " ETH");
+
+            if(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase() == transactions.get(position).getTo().toLowerCase()){ //if account address == getTo, it is received
+
+                to_address.setText("From " + transactions.get(position).getFrom());
+
+            }else{
+
+                to_address.setText("To " + transactions.get(position).getTo());
+
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

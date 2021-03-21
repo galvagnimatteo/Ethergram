@@ -18,11 +18,16 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.ethereum.geth.Account;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.telegram.ethergramUtils.NodeHolder;
+import org.telegram.ethergramUtils.TransactionsAdapter;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.LocaleController;
@@ -36,15 +41,28 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
+import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -68,8 +86,10 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private LinearLayout walletViewer;
 
-    private ListView transactionsListView;
     private TextView balanceTextView;
+    private ListView transactionsListView;
+
+    private MultiTaskHandler multiTaskHandler;
 
     File dir;
 
@@ -224,7 +244,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
-            fillWalletViewer();
+            fillWalletViewer(true);
 
         }else{
 
@@ -431,7 +451,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             if(isSucceeded){ //If starting node is succeeded
 
-                fillWalletViewer();
+                fillWalletViewer(rinkeby);
 
             }
 
@@ -439,32 +459,37 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    public void fillWalletViewer(){
+    public void fillWalletViewer(boolean rinkeby){
 
         try {
 
-            NodeHolder.getInstance().getNode().ethGetBalance(NodeHolder.getInstance().getAccount().getAddress().getHex(), DefaultBlockParameterName.LATEST)
-                    .observable()
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(balance -> {
-                        final BigInteger bigInt = balance.getBalance();
-                        final BigDecimal etherBalance = Convert.fromWei(bigInt.toString(), Convert.Unit.ETHER);
+            String domainAPI;
 
-                        getParentActivity().runOnUiThread(new Runnable() {
+            if(rinkeby){
 
-                            @Override
-                            public void run() {
+                domainAPI = "https://api-rinkeby.etherscan.io";
 
-                                balanceTextView.setText(etherBalance + " ETH"); //returns 0?? //FIXME
+            }else{
 
-                                mainLayout.addView(walletViewer);
+                domainAPI = "https://api.etherscan.io";
 
-                            }
+            }
 
-                        });
+            int totalNumOfTasks = 2;
+            multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
+                @Override
+                protected void onAllTasksCompleted() {
 
-                    });
+                    Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
+
+                    mainLayout.addView(walletViewer);
+
+                }
+            };
+
+            new UpdateBalance( domainAPI + "/api?module=account&action=balance&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&tag=latest&apikey=" + BuildVars.ETHERSCAN_API).execute(); //Updates balance
+
+            new UpdateTransactions(domainAPI + "/api?module=account&action=txlist&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=99999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API).execute();
 
         }catch(Exception e){
 
@@ -482,6 +507,206 @@ public class EthereumWalletActivity extends BaseFragment {
         }
 
     }
+
+    private class UpdateTransactions extends AsyncTask{
+
+        String call;
+
+        public UpdateTransactions(String call){
+
+            this.call = call;
+
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+
+            return callEtherscanAPI(call); //returns json string
+
+        }
+
+        @Override
+        public void onPostExecute(Object o){
+
+            String result = (String) o;
+
+            try {
+
+                ArrayList<Transaction> transactions = new ArrayList<Transaction>();
+
+                JSONObject jObject = new JSONObject(result);
+
+                JSONArray jArray = jObject.getJSONArray("result"); //stops here idk y
+
+                for (int i=0; i < jArray.length(); i++) {
+
+                    try {
+
+                        JSONObject oneObject = jArray.getJSONObject(i);
+
+                        String from = oneObject.getString("from");
+                        String to = oneObject.getString("to");
+                        String value = oneObject.getString("value");
+
+                        Transaction transaction = new Transaction();
+                        transaction.setFrom(from);
+                        transaction.setTo(to);
+                        transaction.setValue(value);
+
+                        transactions.add(transaction);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                TransactionsAdapter adapter = new TransactionsAdapter(context, transactions);
+                transactionsListView.setAdapter(adapter);
+
+                multiTaskHandler.taskComplete();
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+
+            }
+
+        }
+
+    }
+
+    private class UpdateBalance extends AsyncTask{
+
+        String call;
+
+        public UpdateBalance(String call){
+
+            this.call = call;
+
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+
+            return callEtherscanAPI(call); //returns json string
+
+        }
+
+        @Override
+        public void onPostExecute(Object o){
+
+            String result = (String) o;
+
+            try {
+
+                JSONObject jObject = new JSONObject(result);
+
+                String balanceInWei = jObject.getString("result");
+
+                balanceTextView.setText(Convert.fromWei(balanceInWei, Convert.Unit.ETHER) + " ETH");
+
+                multiTaskHandler.taskComplete();
+
+            } catch (JSONException e) {
+
+                e.printStackTrace();
+
+            }
+
+        }
+
+    }
+
+    private String callEtherscanAPI(String call){
+
+        HttpURLConnection connection = null;
+        BufferedReader reader = null;
+
+        try {
+
+            URL url = new URL(call);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.connect();
+
+            InputStream stream = connection.getInputStream();
+
+            reader = new BufferedReader(new InputStreamReader(stream));
+
+            StringBuffer buffer = new StringBuffer();
+            String line = "";
+
+            while ((line = reader.readLine()) != null) {
+
+                buffer.append(line+"\n");
+
+            }
+
+            return buffer.toString();
+
+        } catch (MalformedURLException e) {
+
+            e.printStackTrace();
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            if (connection != null) {
+
+                connection.disconnect();
+
+            }
+
+            try {
+
+                if (reader != null) {
+
+                    reader.close();
+                }
+
+            } catch (IOException e) {
+
+                e.printStackTrace();
+
+            }
+
+        }
+
+        return null;
+
+    }
+
+    public abstract class MultiTaskHandler {
+
+        private int mTasksLeft;
+        private boolean mIsCanceled = false;
+
+        public MultiTaskHandler(int numOfTasks) {
+            mTasksLeft = numOfTasks;
+        }
+
+        protected abstract void onAllTasksCompleted();
+
+        public void taskComplete()  {
+            mTasksLeft--;
+            if (mTasksLeft==0 && !mIsCanceled) {
+                onAllTasksCompleted();
+            }
+        }
+
+        public void reset(int numOfTasks) {
+            mTasksLeft = numOfTasks;
+            mIsCanceled=false;
+        }
+
+        public void cancel() {
+            mIsCanceled = true;
+
+        }
+    }
+
 
 }
 
