@@ -7,10 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import org.ethereum.geth.Node;
-import org.ethereum.geth.Transactions;
 import org.telegram.messenger.R;
-import org.web3j.protocol.Web3j;
 import org.web3j.utils.Convert;
 
 import java.util.ArrayList;
@@ -56,7 +53,7 @@ public class TransactionsAdapter extends BaseAdapter {
 
         if (vi == null) {
 
-            vi = inflater.inflate(R.layout.testtransaction, null);
+            vi = inflater.inflate(R.layout.ethtransaction, null);
 
         }
 

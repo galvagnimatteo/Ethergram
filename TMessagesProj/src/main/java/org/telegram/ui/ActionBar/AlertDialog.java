@@ -695,8 +695,8 @@ public class AlertDialog extends Dialog implements Drawable.Callback {
                 textView.setTextColor(getThemeColor(Theme.key_dialogButton));
                 textView.setGravity(Gravity.CENTER);
                 textView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-//                textView.setLines(1);
-//                textView.setSingleLine(true); //TODO
+//                networkName.setLines(1);
+//                networkName.setSingleLine(true); //TODO
                 textView.setText(positiveButtonText.toString().toUpperCase());
                 textView.setBackgroundDrawable(Theme.getRoundRectSelectorDrawable(getThemeColor(Theme.key_dialogButton)));
                 textView.setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), 0);

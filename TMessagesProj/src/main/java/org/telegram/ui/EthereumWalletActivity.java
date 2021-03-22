@@ -14,9 +14,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewManager;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +31,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.telegram.ethergramUtils.ERC20Transaction;
 import org.telegram.ethergramUtils.NodeHolder;
+import org.telegram.ethergramUtils.SpinnerAdapter;
 import org.telegram.ethergramUtils.Transaction;
 import org.telegram.ethergramUtils.TransactionsAdapter;
 import org.telegram.messenger.AndroidUtilities;
@@ -82,6 +86,10 @@ public class EthereumWalletActivity extends BaseFragment {
     private TextView titleTextView;
     private TextView messageTextView;
 
+    private LinearLayout spinnerLayout;
+
+    private Spinner networkSelection;
+
     private LinearLayout passwordLayout;
 
     private EditTextBoldCursor password;
@@ -95,6 +103,9 @@ public class EthereumWalletActivity extends BaseFragment {
     private MultiTaskHandler multiTaskHandler;
 
     private ArrayList<Transaction> transactions;
+
+
+    private ArrayList<String> networksList;
 
 
     File dir;
@@ -203,6 +214,38 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //------------------------------------HEADER END--------------------------------------------
 
+        //-------------------------------------SPINNER----------------------------------------------
+
+        View spinnerView = LayoutInflater.from(context).inflate(R.layout.custom_spinner, null);
+
+        spinnerLayout = (LinearLayout) spinnerView.findViewById(R.id.spinnerlayout);
+
+        networkSelection = (Spinner) spinnerView.findViewById(R.id.networkselection);
+
+        networksList = new ArrayList<>();
+        networksList.add("Mainnet");
+        networksList.add("Rinkeby");
+
+        SpinnerAdapter spinnerAdapter = new SpinnerAdapter(context, networksList);
+        networkSelection.setAdapter(spinnerAdapter);
+        networkSelection.setSelection(0);
+
+        networkSelection.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+                fillWalletViewer();
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        //-----------------------------------SPINNER END--------------------------------------------
+
         //-------------------------------------PASSWORD---------------------------------------------
 
         View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
@@ -252,7 +295,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
-            fillWalletViewer(true);
+            fillWalletViewer();
 
         }else{
 
@@ -387,7 +430,9 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
-                        fillWalletViewer(true);
+                        mainLayout.addView(spinnerLayout);
+
+                        fillWalletViewer();
 
                     }
 
@@ -402,11 +447,8 @@ public class EthereumWalletActivity extends BaseFragment {
     //Syncing a node needs to be done in background to not block the UI. Node synced only when sending a transaction.
     private class ConnectNode extends AsyncTask{
 
-        private boolean rinkeby;
+        public ConnectNode(){
 
-        public ConnectNode(boolean rinkeby){
-
-            this.rinkeby = rinkeby;
 
         }
 
@@ -417,7 +459,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             try {
 
-                if (rinkeby) {
+                if (  ((String)networkSelection.getSelectedItem()) == "Rinkeby"  ) {
 
                     web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
 
@@ -452,13 +494,13 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    public void fillWalletViewer(boolean rinkeby){
+    public void fillWalletViewer(){
 
         try {
 
             String domainAPI;
 
-            if(rinkeby){
+            if( ((String)networkSelection.getSelectedItem()) == "Rinkeby" ){
 
                 domainAPI = "https://api-rinkeby.etherscan.io";
 
@@ -477,6 +519,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 }
             };
+
+            transactions.clear();
 
             new UpdateBalance(domainAPI).execute();
             new UpdateTransactions(domainAPI).execute();

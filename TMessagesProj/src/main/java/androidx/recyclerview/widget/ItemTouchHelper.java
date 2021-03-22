@@ -1436,18 +1436,18 @@ public class ItemTouchHelper extends RecyclerView.ItemDecoration
          * swipes over the view, you can do the following:
          * <pre>
          *     public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder){
-         *         getDefaultUIUtil().clearView(((ItemTouchViewHolder) viewHolder).textView);
+         *         getDefaultUIUtil().clearView(((ItemTouchViewHolder) viewHolder).networkName);
          *     }
          *     public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
          *         if (viewHolder != null){
-         *             getDefaultUIUtil().onSelected(((ItemTouchViewHolder) viewHolder).textView);
+         *             getDefaultUIUtil().onSelected(((ItemTouchViewHolder) viewHolder).networkName);
          *         }
          *     }
          *     public void onChildDraw(Canvas c, RecyclerView recyclerView,
          *             RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState,
          *             boolean isCurrentlyActive) {
          *         getDefaultUIUtil().onDraw(c, recyclerView,
-         *                 ((ItemTouchViewHolder) viewHolder).textView, dX, dY,
+         *                 ((ItemTouchViewHolder) viewHolder).networkName, dX, dY,
          *                 actionState, isCurrentlyActive);
          *         return true;
          *     }
@@ -1455,7 +1455,7 @@ public class ItemTouchHelper extends RecyclerView.ItemDecoration
          *             RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState,
          *             boolean isCurrentlyActive) {
          *         getDefaultUIUtil().onDrawOver(c, recyclerView,
-         *                 ((ItemTouchViewHolder) viewHolder).textView, dX, dY,
+         *                 ((ItemTouchViewHolder) viewHolder).networkName, dX, dY,
          *                 actionState, isCurrentlyActive);
          *         return true;
          *     }

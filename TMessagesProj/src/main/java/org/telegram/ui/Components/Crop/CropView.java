@@ -387,7 +387,7 @@ public class CropView extends FrameLayout implements CropAreaView.AreaViewListen
 
     public void show() {
         updateCropTransform();
-        //imageView.setVisibility(VISIBLE);
+        //networkImage.setVisibility(VISIBLE);
         areaView.setDimVisibility(true);
         areaView.setFrameVisibility(true, true);
         areaView.invalidate();
