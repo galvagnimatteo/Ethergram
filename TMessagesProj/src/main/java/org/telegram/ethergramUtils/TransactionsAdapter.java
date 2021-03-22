@@ -10,7 +10,7 @@ import android.widget.TextView;
 import org.ethereum.geth.Node;
 import org.ethereum.geth.Transactions;
 import org.telegram.messenger.R;
-import org.web3j.protocol.core.methods.response.Transaction;
+import org.web3j.protocol.Web3j;
 import org.web3j.utils.Convert;
 
 import java.util.ArrayList;
@@ -61,19 +61,34 @@ public class TransactionsAdapter extends BaseAdapter {
         }
 
         TextView amount = (TextView) vi.findViewById(R.id.title);
-        TextView to_address = (TextView) vi.findViewById(R.id.subtitle);
+        TextView address = (TextView) vi.findViewById(R.id.subtitle);
+
+        Transaction trans = transactions.get(position);
 
         try {
 
-            amount.setText(Convert.fromWei(transactions.get(position).getValueRaw(), Convert.Unit.ETHER) + " ETH");
+            if(trans instanceof ERC20Transaction){
 
-            if(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase() == transactions.get(position).getTo().toLowerCase()){ //if account address == getTo, it is received
+                ERC20Transaction transaction = (ERC20Transaction) trans;
 
-                to_address.setText("From " + transactions.get(position).getFrom());
+                int decimals = Integer.parseInt(transaction.getTokenDecimal());
+                long value = Long.parseLong(transaction.getValue());
+
+                amount.setText((value/Math.pow(10, decimals)) + " " + transaction.getTokenSymbol());
 
             }else{
 
-                to_address.setText("To " + transactions.get(position).getTo());
+                amount.setText(Convert.fromWei(trans.getValue(), Convert.Unit.ETHER) + " ETH");
+
+            }
+
+            if(trans.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){
+
+                address.setText("From: " + trans.getFrom().toLowerCase());
+
+            }else{
+
+                address.setText("To: " + trans.getTo().toLowerCase());
 
             }
 

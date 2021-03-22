@@ -26,7 +26,9 @@ import org.ethereum.geth.KeyStore;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.telegram.ethergramUtils.ERC20Transaction;
 import org.telegram.ethergramUtils.NodeHolder;
+import org.telegram.ethergramUtils.Transaction;
 import org.telegram.ethergramUtils.TransactionsAdapter;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
@@ -44,8 +46,8 @@ import org.web3j.protocol.Web3jFactory;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthBlock;
-import org.web3j.protocol.core.methods.response.Transaction;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Contract;
 import org.web3j.utils.Convert;
 
 import java.io.BufferedReader;
@@ -59,6 +61,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -90,6 +93,9 @@ public class EthereumWalletActivity extends BaseFragment {
     private ListView transactionsListView;
 
     private MultiTaskHandler multiTaskHandler;
+
+    private ArrayList<Transaction> transactions;
+
 
     File dir;
 
@@ -240,6 +246,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //-------------------------------------LOGIC------------------------------------------------
 
+        transactions =  new ArrayList<Transaction>();
+
         if(NodeHolder.getInstance().getAccount() != null){ //user already logged
 
             messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
@@ -379,11 +387,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
 
+                        fillWalletViewer(true);
+
                     }
 
                 });
-
-                new ConnectNode(true).execute();
 
             }
 
@@ -391,7 +399,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    //Syncing a node needs to be done in background to not block the UI.
+    //Syncing a node needs to be done in background to not block the UI. Node synced only when sending a transaction.
     private class ConnectNode extends AsyncTask{
 
         private boolean rinkeby;
@@ -432,26 +440,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         messageTextView.setText("Cannot connect to node\n" + e.getMessage());
 
-                        mainLayout.addView(walletViewer);
-
                     }
 
                 });
 
                 return false;
-
-            }
-
-        }
-
-        @Override
-        public void onPostExecute(Object result){
-
-            boolean isSucceeded = (boolean) result;
-
-            if(isSucceeded){ //If starting node is succeeded
-
-                fillWalletViewer(rinkeby);
 
             }
 
@@ -475,21 +468,19 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
 
-            int totalNumOfTasks = 2;
+            int totalNumOfTasks = 3;
             multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
                 @Override
                 protected void onAllTasksCompleted() {
 
-                    Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
-
-                    mainLayout.addView(walletViewer);
+                    new UpdateWalletViewer().execute();
 
                 }
             };
 
-            new UpdateBalance( domainAPI + "/api?module=account&action=balance&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&tag=latest&apikey=" + BuildVars.ETHERSCAN_API).execute(); //Updates balance
-
-            new UpdateTransactions(domainAPI + "/api?module=account&action=txlist&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=99999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API).execute();
+            new UpdateBalance(domainAPI).execute();
+            new UpdateTransactions(domainAPI).execute();
+            new UpdateERC20Transactions(domainAPI).execute();
 
         }catch(Exception e){
 
@@ -508,13 +499,42 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    private class UpdateTransactions extends AsyncTask{
+    private class UpdateWalletViewer extends AsyncTask{
 
-        String call;
+        @Override
+        protected Object doInBackground(Object[] objects) {
 
-        public UpdateTransactions(String call){
+            Collections.sort(transactions); //order by timestamp
 
-            this.call = call;
+            return null;
+
+        }
+
+        @Override
+        protected void onPostExecute(Object objects) {
+
+            TransactionsAdapter adapter = new TransactionsAdapter(context, transactions);
+            transactionsListView.setAdapter(adapter);
+
+            if(walletViewer.getParent() == null){
+
+                mainLayout.addView(walletViewer);
+
+            }
+
+            Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
+
+        }
+
+    }
+
+    private class UpdateERC20Transactions extends AsyncTask{
+
+        String call = "/api?module=account&action=tokentx&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=999999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
+
+        public UpdateERC20Transactions(String domainAPI){
+
+            this.call = domainAPI + this.call;
 
         }
 
@@ -532,11 +552,9 @@ public class EthereumWalletActivity extends BaseFragment {
 
             try {
 
-                ArrayList<Transaction> transactions = new ArrayList<Transaction>();
-
                 JSONObject jObject = new JSONObject(result);
 
-                JSONArray jArray = jObject.getJSONArray("result"); //stops here idk y
+                JSONArray jArray = jObject.getJSONArray("result");
 
                 for (int i=0; i < jArray.length(); i++) {
 
@@ -544,14 +562,20 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         JSONObject oneObject = jArray.getJSONObject(i);
 
+                        String timestamp = oneObject.getString("timeStamp");
                         String from = oneObject.getString("from");
                         String to = oneObject.getString("to");
                         String value = oneObject.getString("value");
+                        String tokenSymbol = oneObject.getString("tokenSymbol");
+                        String decimals = oneObject.getString("tokenDecimal");
 
-                        Transaction transaction = new Transaction();
+                        ERC20Transaction transaction = new ERC20Transaction();
                         transaction.setFrom(from);
                         transaction.setTo(to);
                         transaction.setValue(value);
+                        transaction.setTokenSymbol(tokenSymbol);
+                        transaction.setTimestamp(timestamp);
+                        transaction.setTokenDecimal(decimals);
 
                         transactions.add(transaction);
 
@@ -560,8 +584,69 @@ public class EthereumWalletActivity extends BaseFragment {
                     }
                 }
 
-                TransactionsAdapter adapter = new TransactionsAdapter(context, transactions);
-                transactionsListView.setAdapter(adapter);
+                multiTaskHandler.taskComplete();
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+
+            }
+
+        }
+
+    }
+
+    private class UpdateTransactions extends AsyncTask{
+
+        String call = "/api?module=account&action=txlist&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=99999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
+
+        public UpdateTransactions(String domainAPI){
+
+            this.call = domainAPI + this.call;
+
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+
+            return callEtherscanAPI(call); //returns json string
+
+        }
+
+        @Override
+        public void onPostExecute(Object o){
+
+            String result = (String) o;
+
+            try {
+
+                JSONObject jObject = new JSONObject(result);
+
+                JSONArray jArray = jObject.getJSONArray("result");
+
+                for (int i=0; i < jArray.length(); i++) {
+
+                    try {
+
+                        JSONObject oneObject = jArray.getJSONObject(i);
+
+                        String timestamp = oneObject.getString("timeStamp");
+                        String from = oneObject.getString("from");
+                        String to = oneObject.getString("to");
+                        String value = oneObject.getString("value");
+
+                        Transaction transaction = new Transaction();
+                        transaction.setFrom(from);
+                        transaction.setTo(to);
+                        transaction.setValue(value);
+                        transaction.setTimestamp(timestamp);
+
+                        transactions.add(transaction);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
 
                 multiTaskHandler.taskComplete();
 
@@ -577,11 +662,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private class UpdateBalance extends AsyncTask{
 
-        String call;
+        String call = "/api?module=account&action=balance&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&tag=latest&apikey=" + BuildVars.ETHERSCAN_API;
 
-        public UpdateBalance(String call){
+        public UpdateBalance(String domainAPI){
 
-            this.call = call;
+            this.call = domainAPI + this.call;
 
         }
 
