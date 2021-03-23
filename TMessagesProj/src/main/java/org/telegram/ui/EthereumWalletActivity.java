@@ -81,32 +81,28 @@ public class EthereumWalletActivity extends BaseFragment {
     private LinearLayout mainLayout;
 
     private LinearLayout headerLayout;
-
     private CircleImageView ethlogoimage;
     private TextView titleTextView;
     private TextView messageTextView;
 
     private LinearLayout spinnerLayout;
-
     private Spinner networkSelection;
 
     private LinearLayout passwordLayout;
-
     private EditTextBoldCursor password;
     private TextView button;
 
     private LinearLayout walletViewer;
-
     private TextView balanceTextView;
     private ListView transactionsListView;
 
     private MultiTaskHandler multiTaskHandler;
 
+    private LinearLayout sendLayout;
+
     private ArrayList<Transaction> transactions;
-
-
     private ArrayList<String> networksList;
-
+    private BigDecimal ethBalance;
 
     File dir;
 
@@ -228,13 +224,22 @@ public class EthereumWalletActivity extends BaseFragment {
 
         SpinnerAdapter spinnerAdapter = new SpinnerAdapter(context, networksList);
         networkSelection.setAdapter(spinnerAdapter);
-        networkSelection.setSelection(0);
+        networkSelection.setSelection(0); //FIXME this runs onItemSelected
+        networkSelection.setTag("first");
 
-        networkSelection.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        AdapterView.OnItemSelectedListener spinnerListener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 
-                fillWalletViewer();
+                if(((String)networkSelection.getTag()) == "first"){
+
+                    networkSelection.setTag("other");
+
+                }else{
+
+                    addOrUpdateWalletViewer();
+
+                }
 
             }
 
@@ -242,50 +247,12 @@ public class EthereumWalletActivity extends BaseFragment {
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
-        });
+
+        };
+
+        networkSelection.setOnItemSelectedListener(spinnerListener);
 
         //-----------------------------------SPINNER END--------------------------------------------
-
-        //-------------------------------------PASSWORD---------------------------------------------
-
-        View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
-
-        passwordLayout = (LinearLayout) ethwalletcredentialsView.findViewById(R.id.ethwalletcredentials); //header layout
-
-        password = (EditTextBoldCursor) ethwalletcredentialsView.findViewById(R.id.password);
-        password.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        password.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        password.setCursorSize(AndroidUtilities.dp(20));
-        password.setCursorWidth(1.5f);
-        password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
-        password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
-        password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
-        password.setMaxLines(1);
-        password.setPadding(10, 0, 10, 20);
-        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        password.setTransformationMethod(PasswordTransformationMethod.getInstance());
-        password.setTypeface(Typeface.DEFAULT);
-        password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
-
-        button = (TextView) ethwalletcredentialsView.findViewById(R.id.button);
-        button.setTextColor(0xffffffff);
-        button.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
-        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        button.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(4), 0xff50a8eb, 0xff439bde));
-
-        //----------------------------------PASSWORD END--------------------------------------------
-
-        //------------------------------------VIEWER------------------------------------------------
-
-        View ethwalletviewerView = LayoutInflater.from(context).inflate(R.layout.ethwalletviewer, null);
-
-        walletViewer = (LinearLayout) ethwalletviewerView.findViewById(R.id.ethwalletviewer);
-
-        balanceTextView = (TextView) ethwalletviewerView.findViewById(R.id.balance);
-
-        transactionsListView = (ListView) ethwalletviewerView.findViewById(R.id.transactionsListView);
-
-        //----------------------------------END VIEWER----------------------------------------------
 
         //-------------------------------------LOGIC------------------------------------------------
 
@@ -293,11 +260,12 @@ public class EthereumWalletActivity extends BaseFragment {
 
         if(NodeHolder.getInstance().getAccount() != null){ //user already logged
 
-            messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
-
-            fillWalletViewer();
+            createWalletViewerLayout();
+            addOrUpdateWalletViewer();
 
         }else{
+
+            createAndAddPasswordLayout();
 
             if (new File(dir + "/keystore").exists()) { //login
 
@@ -327,11 +295,117 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
 
-            mainLayout.addView(passwordLayout);
-
         }
 
         return fragmentView;
+
+    }
+
+    private void createAndAddPasswordLayout(){
+
+        //-------------------------------------PASSWORD---------------------------------------------
+
+        if(passwordLayout == null) {
+
+            View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
+
+            passwordLayout = (LinearLayout) ethwalletcredentialsView.findViewById(R.id.ethwalletcredentials); //header layout
+
+            password = (EditTextBoldCursor) ethwalletcredentialsView.findViewById(R.id.password);
+            password.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            password.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            password.setCursorSize(AndroidUtilities.dp(20));
+            password.setCursorWidth(1.5f);
+            password.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+            password.setImeOptions(EditorInfo.IME_ACTION_NEXT | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+            password.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+            password.setMaxLines(1);
+            password.setPadding(10, 0, 10, 20);
+            password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            password.setTransformationMethod(PasswordTransformationMethod.getInstance());
+            password.setTypeface(Typeface.DEFAULT);
+            password.setGravity(LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT);
+
+            button = (TextView) ethwalletcredentialsView.findViewById(R.id.button);
+            button.setTextColor(0xffffffff);
+            button.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            button.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(4), 0xff50a8eb, 0xff439bde));
+
+        }
+
+        //----------------------------------PASSWORD END--------------------------------------------
+
+        mainLayout.addView(passwordLayout);
+
+    }
+
+    private void createWalletViewerLayout(){
+
+        //------------------------------------VIEWER------------------------------------------------
+
+        if(walletViewer == null) {
+
+            View ethwalletviewerView = LayoutInflater.from(context).inflate(R.layout.ethwalletviewer, null);
+
+            walletViewer = (LinearLayout) ethwalletviewerView.findViewById(R.id.ethwalletviewer);
+
+            balanceTextView = (TextView) ethwalletviewerView.findViewById(R.id.balance);
+
+            transactionsListView = (ListView) ethwalletviewerView.findViewById(R.id.transactionsListView);
+
+        }
+
+        //----------------------------------END VIEWER----------------------------------------------
+
+    }
+
+    private void addOrUpdateWalletViewer(){
+
+        try {
+
+            String domainAPI;
+
+            if( ((String)networkSelection.getSelectedItem()) == "Rinkeby" ){
+
+                domainAPI = "https://api-rinkeby.etherscan.io";
+
+            }else{
+
+                domainAPI = "https://api.etherscan.io";
+
+            }
+
+            int totalNumOfTasks = 3;
+            multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
+                @Override
+                protected void onAllTasksCompleted() {
+
+                    new onAllUpdated().execute();
+
+                }
+            };
+
+            transactions.clear();
+
+            new UpdateBalance(domainAPI).execute();
+            new UpdateTransactions(domainAPI).execute();
+            new UpdateERC20Transactions(domainAPI).execute();
+
+        }catch(Exception e){
+
+            getParentActivity().runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    messageTextView.setText("Cannot fetch balance\n" + e.getMessage());
+
+                }
+
+            });
+
+        }
 
     }
 
@@ -428,11 +502,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
 
-                        messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
-
-                        mainLayout.addView(spinnerLayout);
-
-                        fillWalletViewer();
+                        createWalletViewerLayout();
+                        addOrUpdateWalletViewer();
 
                     }
 
@@ -494,56 +565,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    public void fillWalletViewer(){
-
-        try {
-
-            String domainAPI;
-
-            if( ((String)networkSelection.getSelectedItem()) == "Rinkeby" ){
-
-                domainAPI = "https://api-rinkeby.etherscan.io";
-
-            }else{
-
-                domainAPI = "https://api.etherscan.io";
-
-            }
-
-            int totalNumOfTasks = 3;
-            multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
-                @Override
-                protected void onAllTasksCompleted() {
-
-                    new UpdateWalletViewer().execute();
-
-                }
-            };
-
-            transactions.clear();
-
-            new UpdateBalance(domainAPI).execute();
-            new UpdateTransactions(domainAPI).execute();
-            new UpdateERC20Transactions(domainAPI).execute();
-
-        }catch(Exception e){
-
-            getParentActivity().runOnUiThread(new Runnable() {
-
-                @Override
-                public void run() {
-
-                    messageTextView.setText("Cannot fetch balance\n" + e.getMessage());
-
-                }
-
-            });
-
-        }
-
-    }
-
-    private class UpdateWalletViewer extends AsyncTask{
+    //Needs to be async because sorting could take a while.
+    private class onAllUpdated extends AsyncTask{
 
         @Override
         protected Object doInBackground(Object[] objects) {
@@ -555,16 +578,25 @@ public class EthereumWalletActivity extends BaseFragment {
         }
 
         @Override
-        protected void onPostExecute(Object objects) {
+        protected void onPostExecute(Object objects) { //Here graphic elements are updated/added after all APIs have been called
 
             TransactionsAdapter adapter = new TransactionsAdapter(context, transactions);
             transactionsListView.setAdapter(adapter);
+
+            if(spinnerLayout.getParent() == null) {
+
+                mainLayout.addView(spinnerLayout);
+
+            }
 
             if(walletViewer.getParent() == null){
 
                 mainLayout.addView(walletViewer);
 
             }
+
+            messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
+            balanceTextView.setText(ethBalance + " ETH");
 
             Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
 
@@ -732,7 +764,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 String balanceInWei = jObject.getString("result");
 
-                balanceTextView.setText(Convert.fromWei(balanceInWei, Convert.Unit.ETHER) + " ETH");
+                ethBalance = Convert.fromWei(balanceInWei, Convert.Unit.ETHER);
 
                 multiTaskHandler.taskComplete();
 
