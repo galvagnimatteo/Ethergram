@@ -1,6 +1,8 @@
 package org.telegram.ui;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -15,7 +17,7 @@ import android.view.View;
 import android.view.ViewManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -43,15 +45,9 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.Contract;
 import org.web3j.utils.Convert;
 
 import java.io.BufferedReader;
@@ -60,23 +56,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 public class EthereumWalletActivity extends BaseFragment {
 
     private Context context;
     protected View actionBarBackground;
+
+    private FrameLayout frameLayout;
 
     private LinearLayout mainLayout;
 
@@ -95,6 +88,8 @@ public class EthereumWalletActivity extends BaseFragment {
     private LinearLayout walletViewer;
     private TextView balanceTextView;
     private ListView transactionsListView;
+    private Button sendButton;
+    private Button receiveButton;
 
     private MultiTaskHandler multiTaskHandler;
 
@@ -163,7 +158,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
         fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
         fragmentView.setTag(Theme.key_windowBackgroundGray);
-        FrameLayout frameLayout = (FrameLayout) fragmentView;
+        frameLayout = (FrameLayout) fragmentView;
 
         actionBarBackground = new View(context) {
 
@@ -188,7 +183,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //---------------------------------------HEADER---------------------------------------------
 
-        View ethwalletheaderView = LayoutInflater.from(context).inflate(R.layout.ethwalletheader, null);
+        View ethwalletheaderView = LayoutInflater.from(context).inflate(R.layout.ethwalletheader_layout, null);
 
         headerLayout = (LinearLayout) ethwalletheaderView.findViewById(R.id.ethwalletheader);
 
@@ -224,14 +219,14 @@ public class EthereumWalletActivity extends BaseFragment {
 
         SpinnerAdapter spinnerAdapter = new SpinnerAdapter(context, networksList);
         networkSelection.setAdapter(spinnerAdapter);
-        networkSelection.setSelection(0); //FIXME this runs onItemSelected
+        networkSelection.setSelection(0);
         networkSelection.setTag("first");
 
         AdapterView.OnItemSelectedListener spinnerListener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 
-                if(((String)networkSelection.getTag()) == "first"){
+                if(((String)networkSelection.getTag()) == "first"){ //This is used for not listening to the first call (done with setselection(0))
 
                     networkSelection.setTag("other");
 
@@ -265,7 +260,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
         }else{
 
-            createAndAddPasswordLayout();
+            createPasswordLayout();
+            mainLayout.addView(passwordLayout);
 
             if (new File(dir + "/keystore").exists()) { //login
 
@@ -301,13 +297,13 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
-    private void createAndAddPasswordLayout(){
+    private void createPasswordLayout(){
 
         //-------------------------------------PASSWORD---------------------------------------------
 
         if(passwordLayout == null) {
 
-            View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletcredentials, null);
+            View ethwalletcredentialsView = LayoutInflater.from(context).inflate(R.layout.ethwalletpassword_layout, null);
 
             passwordLayout = (LinearLayout) ethwalletcredentialsView.findViewById(R.id.ethwalletcredentials); //header layout
 
@@ -336,8 +332,6 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //----------------------------------PASSWORD END--------------------------------------------
 
-        mainLayout.addView(passwordLayout);
-
     }
 
     private void createWalletViewerLayout(){
@@ -346,18 +340,44 @@ public class EthereumWalletActivity extends BaseFragment {
 
         if(walletViewer == null) {
 
-            View ethwalletviewerView = LayoutInflater.from(context).inflate(R.layout.ethwalletviewer, null);
+            View ethwalletviewerView = LayoutInflater.from(context).inflate(R.layout.ethwalletviewer_layout, null);
 
             walletViewer = (LinearLayout) ethwalletviewerView.findViewById(R.id.ethwalletviewer);
 
             balanceTextView = (TextView) ethwalletviewerView.findViewById(R.id.balance);
-
             transactionsListView = (ListView) ethwalletviewerView.findViewById(R.id.transactionsListView);
+            sendButton = (Button) ethwalletviewerView.findViewById(R.id.sendbutton);
+            receiveButton = (Button) ethwalletviewerView.findViewById(R.id.receivebutton);
+
+            //send and receive buttons
+            sendButton.setOnClickListener(new View.OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+
+                    final Dialog dialog=new Dialog(context);
+                    dialog.setContentView(R.layout.sendtransaction_layout);
+                    dialog.setCanceledOnTouchOutside(false);
+                    dialog.setCancelable(true);
+
+                    dialog.show();
+
+                }
+
+            });
 
         }
 
         //----------------------------------END VIEWER----------------------------------------------
 
+    }
+
+    public static Bitmap getBitmapFromView(View view) {
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bitmap);
+        view.layout(view.getLeft(), view.getTop(), view.getRight(), view.getBottom());
+        view.draw(c);
+        return bitmap;
     }
 
     private void addOrUpdateWalletViewer(){
