@@ -1,20 +1,34 @@
 package org.telegram.ui;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Bundle;
+import android.renderscript.Allocation;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicBlur;
 import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewManager;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -65,6 +79,8 @@ import java.util.Collections;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class EthereumWalletActivity extends BaseFragment {
+
+    Dialog dialog;
 
     private Context context;
     protected View actionBarBackground;
@@ -355,11 +371,11 @@ public class EthereumWalletActivity extends BaseFragment {
                 @Override
                 public void onClick(View v) {
 
-                    final Dialog dialog=new Dialog(context);
+                    dialog=new Dialog(context);
                     dialog.setContentView(R.layout.sendtransaction_layout);
                     dialog.setCanceledOnTouchOutside(false);
                     dialog.setCancelable(true);
-
+                    
                     dialog.show();
 
                 }
@@ -370,14 +386,6 @@ public class EthereumWalletActivity extends BaseFragment {
 
         //----------------------------------END VIEWER----------------------------------------------
 
-    }
-
-    public static Bitmap getBitmapFromView(View view) {
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(bitmap);
-        view.layout(view.getLeft(), view.getTop(), view.getRight(), view.getBottom());
-        view.draw(c);
-        return bitmap;
     }
 
     private void addOrUpdateWalletViewer(){

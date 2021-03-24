@@ -312,8 +312,6 @@ android {
         minSdkVersion 16
         targetSdkVersion 29
         versionName "7.5.0"
-        renderscriptTargetApi 19
-        renderscriptSupportModeEnabled true
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
