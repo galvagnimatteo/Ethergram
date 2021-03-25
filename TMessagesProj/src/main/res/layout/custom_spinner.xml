@@ -6,7 +6,7 @@
     android:layout_height="wrap_content">
 
     <Spinner
-        android:id="@+id/networkselection"
+        android:id="@+id/customspinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="60dp"

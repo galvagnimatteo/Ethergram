@@ -1,34 +1,18 @@
 package org.telegram.ui;
 
-import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Bundle;
-import android.renderscript.Allocation;
-import android.renderscript.RenderScript;
-import android.renderscript.ScriptIntrinsicBlur;
 import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
-import android.util.Log;
 import android.util.TypedValue;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewManager;
-import android.view.Window;
-import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -43,11 +27,13 @@ import org.ethereum.geth.Account;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.telegram.ethergramUtils.Balance;
 import org.telegram.ethergramUtils.ERC20Transaction;
+import org.telegram.ethergramUtils.Network;
 import org.telegram.ethergramUtils.NodeHolder;
-import org.telegram.ethergramUtils.SpinnerAdapter;
+import org.telegram.ethergramUtils.SendDialog;
+import org.telegram.ethergramUtils.NetworkSpinnerAdapter;
 import org.telegram.ethergramUtils.Transaction;
 import org.telegram.ethergramUtils.TransactionsAdapter;
 import org.telegram.messenger.AndroidUtilities;
@@ -80,8 +66,6 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class EthereumWalletActivity extends BaseFragment {
 
-    Dialog dialog;
-
     private Context context;
     protected View actionBarBackground;
 
@@ -112,8 +96,8 @@ public class EthereumWalletActivity extends BaseFragment {
     private LinearLayout sendLayout;
 
     private ArrayList<Transaction> transactions;
-    private ArrayList<String> networksList;
-    private BigDecimal ethBalance;
+    private ArrayList<Network> networksList;
+    private ArrayList<Balance> balances;
 
     File dir;
 
@@ -226,15 +210,15 @@ public class EthereumWalletActivity extends BaseFragment {
         View spinnerView = LayoutInflater.from(context).inflate(R.layout.custom_spinner, null);
 
         spinnerLayout = (LinearLayout) spinnerView.findViewById(R.id.spinnerlayout);
-
-        networkSelection = (Spinner) spinnerView.findViewById(R.id.networkselection);
+        networkSelection = (Spinner) spinnerView.findViewById(R.id.customspinner);
 
         networksList = new ArrayList<>();
-        networksList.add("Mainnet");
-        networksList.add("Rinkeby");
 
-        SpinnerAdapter spinnerAdapter = new SpinnerAdapter(context, networksList);
-        networkSelection.setAdapter(spinnerAdapter);
+        networksList.add(new Network("Mainnet", R.drawable.ethtoken));
+        networksList.add(new Network("Rinkeby", R.drawable.ethtoken));
+
+        NetworkSpinnerAdapter networkSpinnerAdapter = new NetworkSpinnerAdapter(context, networksList);
+        networkSelection.setAdapter(networkSpinnerAdapter);
         networkSelection.setSelection(0);
         networkSelection.setTag("first");
 
@@ -268,6 +252,7 @@ public class EthereumWalletActivity extends BaseFragment {
         //-------------------------------------LOGIC------------------------------------------------
 
         transactions =  new ArrayList<Transaction>();
+        balances = new ArrayList<Balance>();
 
         if(NodeHolder.getInstance().getAccount() != null){ //user already logged
 
@@ -371,12 +356,9 @@ public class EthereumWalletActivity extends BaseFragment {
                 @Override
                 public void onClick(View v) {
 
-                    dialog=new Dialog(context);
-                    dialog.setContentView(R.layout.sendtransaction_layout);
-                    dialog.setCanceledOnTouchOutside(false);
-                    dialog.setCancelable(true);
-                    
-                    dialog.show();
+                    SendDialog sendDialog;
+                    sendDialog=new SendDialog(context, balances);
+                    sendDialog.show();
 
                 }
 
@@ -394,7 +376,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             String domainAPI;
 
-            if( ((String)networkSelection.getSelectedItem()) == "Rinkeby" ){
+            if( ((Network)networkSelection.getSelectedItem()).getName() == "Rinkeby"  ){
 
                 domainAPI = "https://api-rinkeby.etherscan.io";
 
@@ -404,7 +386,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
 
-            int totalNumOfTasks = 3;
+            int totalNumOfTasks = 2;
             multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
                 @Override
                 protected void onAllTasksCompleted() {
@@ -415,8 +397,10 @@ public class EthereumWalletActivity extends BaseFragment {
             };
 
             transactions.clear();
+            balances.clear();
 
-            new UpdateBalance(domainAPI).execute();
+            balances.add(new Balance("ETH", BigDecimal.ZERO));
+
             new UpdateTransactions(domainAPI).execute();
             new UpdateERC20Transactions(domainAPI).execute();
 
@@ -427,7 +411,7 @@ public class EthereumWalletActivity extends BaseFragment {
                 @Override
                 public void run() {
 
-                    messageTextView.setText("Cannot fetch balance\n" + e.getMessage());
+                    messageTextView.setText("Cannot update wallet\n" + e.getMessage());
 
                 }
 
@@ -558,7 +542,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
             try {
 
-                if (  ((String)networkSelection.getSelectedItem()) == "Rinkeby"  ) {
+                if (  ((Network)networkSelection.getSelectedItem()).getName() == "Rinkeby"  ) {
 
                     web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
 
@@ -624,7 +608,7 @@ public class EthereumWalletActivity extends BaseFragment {
             }
 
             messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
-            balanceTextView.setText(ethBalance + " ETH");
+            balanceTextView.setText(balances.get(0).getBalance() + " ETH");
 
             Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
 
@@ -682,6 +666,37 @@ public class EthereumWalletActivity extends BaseFragment {
                         transaction.setTokenDecimal(decimals);
 
                         transactions.add(transaction);
+
+                        BigDecimal v = BigDecimal.valueOf(Double.parseDouble(value)).divide(BigDecimal.valueOf(Math.pow(10, Integer.parseInt(decimals))));
+
+                        boolean exists = false;
+
+                        for(Balance b : balances){
+
+                            if(b.getTokenSymbol().equals(transaction.getTokenSymbol())){
+
+                                if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){ //transaction received
+
+                                    b.add(v);
+
+                                }else{ //transaction sent
+
+                                    b.subtract(v);
+
+                                }
+
+                                exists = true;
+                                break;
+
+                            }
+
+                        }
+
+                        if(!exists){
+
+                            balances.add(new Balance(transaction.getTokenSymbol(), v));
+
+                        }
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -747,6 +762,16 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         transactions.add(transaction);
 
+                        if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){ //transaction received
+
+                            balances.get(0).add(Convert.fromWei(transaction.getValue(), Convert.Unit.ETHER));
+
+                        }else{ //transaction sent
+
+                            balances.get(0).subtract(Convert.fromWei(transaction.getValue(), Convert.Unit.ETHER));
+
+                        }
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -755,48 +780,6 @@ public class EthereumWalletActivity extends BaseFragment {
                 multiTaskHandler.taskComplete();
 
             } catch (Exception e) {
-
-                e.printStackTrace();
-
-            }
-
-        }
-
-    }
-
-    private class UpdateBalance extends AsyncTask{
-
-        String call = "/api?module=account&action=balance&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&tag=latest&apikey=" + BuildVars.ETHERSCAN_API;
-
-        public UpdateBalance(String domainAPI){
-
-            this.call = domainAPI + this.call;
-
-        }
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            return callEtherscanAPI(call); //returns json string
-
-        }
-
-        @Override
-        public void onPostExecute(Object o){
-
-            String result = (String) o;
-
-            try {
-
-                JSONObject jObject = new JSONObject(result);
-
-                String balanceInWei = jObject.getString("result");
-
-                ethBalance = Convert.fromWei(balanceInWei, Convert.Unit.ETHER);
-
-                multiTaskHandler.taskComplete();
-
-            } catch (JSONException e) {
 
                 e.printStackTrace();
 

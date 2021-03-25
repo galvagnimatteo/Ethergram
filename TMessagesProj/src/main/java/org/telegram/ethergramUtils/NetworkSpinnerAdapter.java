@@ -9,16 +9,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.telegram.messenger.R;
-import org.web3j.utils.Convert;
 
 import java.util.ArrayList;
 
-public class SpinnerAdapter extends BaseAdapter {
+public class NetworkSpinnerAdapter extends BaseAdapter {
     Context context;
     private static LayoutInflater inflater = null;
-    ArrayList<String> networksList;
+    ArrayList<Network> networksList;
 
-    public SpinnerAdapter(Context applicationContext, ArrayList<String> networksList) {
+    public NetworkSpinnerAdapter(Context applicationContext, ArrayList<Network> networksList) {
         this.context = applicationContext;
         this.networksList = networksList;
         inflater = (LayoutInflater.from(applicationContext));
@@ -51,14 +50,15 @@ public class SpinnerAdapter extends BaseAdapter {
 
         if (vi == null) {
 
-            vi = inflater.inflate(R.layout.custom_spinner_item, null);
+            vi = inflater.inflate(R.layout.network_spinner_item, null);
 
         }
 
         ImageView networkImage = (ImageView) vi.findViewById(R.id.networkImage);
         TextView networkName = (TextView) vi.findViewById(R.id.networkName);
 
-        networkName.setText(networksList.get(position));
+        networkName.setText(networksList.get(position).getName());
+        networkImage.setImageResource(networksList.get(position).getImageId());
 
         return vi;
     }
