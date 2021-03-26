@@ -79,7 +79,7 @@ public class TransactionsAdapter extends BaseAdapter {
 
             }
 
-            if(trans.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){
+            if(trans.getTo().toLowerCase().equals(NodeHolder.getInstance().getCredentials().getAddress().toLowerCase())){
 
                 address.setText("From: " + trans.getFrom().toLowerCase());
 

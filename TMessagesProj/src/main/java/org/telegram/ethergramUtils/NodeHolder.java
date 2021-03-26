@@ -7,7 +7,7 @@ import org.web3j.protocol.Web3j;
 public class NodeHolder {
 
     private Web3j node;
-    private Account account;
+    private Credentials credentials;
     private static NodeHolder instance = null;
 
     private NodeHolder() {
@@ -28,11 +28,11 @@ public class NodeHolder {
         this.node = node;
     }
 
-    public Account getAccount() {
-        return account;
+    public Credentials getCredentials() {
+        return credentials;
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public void setCredentials(Credentials credentials) {
+        this.credentials = credentials;
     }
 }

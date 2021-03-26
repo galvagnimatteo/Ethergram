@@ -12,26 +12,26 @@ import org.telegram.messenger.R;
 
 import java.util.ArrayList;
 
-public class NetworkSpinnerAdapter extends BaseAdapter {
+public class BalanceSpinnerAdapter extends BaseAdapter {
     Context context;
     private static LayoutInflater inflater = null;
-    ArrayList<Network> networksList;
+    ArrayList<Balance> balancesList;
 
-    public NetworkSpinnerAdapter(Context applicationContext, ArrayList<Network> networksList) {
+    public BalanceSpinnerAdapter(Context applicationContext, ArrayList<Balance> balancesList) {
         this.context = applicationContext;
-        this.networksList = networksList;
+        this.balancesList = balancesList;
         inflater = (LayoutInflater.from(applicationContext));
     }
 
     @Override
     public int getCount() {
-        return (int) networksList.size();
+        return (int) balancesList.size();
     }
 
     @Override
     public Object getItem(int i) {
         try {
-            return networksList.get(i);
+            return balancesList.get(i);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -50,15 +50,15 @@ public class NetworkSpinnerAdapter extends BaseAdapter {
 
         if (vi == null) {
 
-            vi = inflater.inflate(R.layout.network_spinner_item, null);
+            vi = inflater.inflate(R.layout.balance_spinner_item, null);
 
         }
 
-        ImageView networkImage = (ImageView) vi.findViewById(R.id.networkImage);
-        TextView networkName = (TextView) vi.findViewById(R.id.tokensymbol);
+        TextView tokenSymbol = (TextView) vi.findViewById(R.id.tokensymbol);
+        TextView valuebalance = (TextView) vi.findViewById(R.id.valuebalance);
 
-        networkName.setText(networksList.get(position).getName());
-        networkImage.setImageResource(networksList.get(position).getImageId());
+        tokenSymbol.setText(balancesList.get(position).getTokenSymbol());
+        valuebalance.setText(balancesList.get(position).getBalance() + "");
 
         return vi;
     }

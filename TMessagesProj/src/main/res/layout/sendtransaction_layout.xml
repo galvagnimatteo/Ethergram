@@ -16,21 +16,31 @@
         android:layout_gravity="center_horizontal"
         app:srcCompat="@drawable/ethtoken" />
 
-    <TextView
-        android:id="@+id/textView3"
+    <Spinner
+        android:id="@+id/balanceselection"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="TextView" />
+        android:layout_height="wrap_content" />
 
-    <TextView
-        android:id="@+id/textView2"
+    <EditText
+        android:id="@+id/sendvalue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView" />
+        android:ems="10"
+        android:hint="Value"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/sendaddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="Address"
+        android:inputType="textPersonName"
+        android:text="Name" />
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/send"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Button" />
+        android:text="Send" />
 </LinearLayout>

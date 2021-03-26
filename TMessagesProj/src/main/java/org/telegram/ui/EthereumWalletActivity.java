@@ -23,6 +23,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
 import org.ethereum.geth.Account;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
@@ -45,6 +47,10 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.LayoutHelper;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.ECKeyPair;
+import org.web3j.crypto.Keys;
+import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
 import org.web3j.protocol.http.HttpService;
@@ -98,6 +104,8 @@ public class EthereumWalletActivity extends BaseFragment {
     private ArrayList<Transaction> transactions;
     private ArrayList<Network> networksList;
     private ArrayList<Balance> balances;
+
+    private SwipeRefreshLayout refreshLayout;
 
     File dir;
 
@@ -254,7 +262,7 @@ public class EthereumWalletActivity extends BaseFragment {
         transactions =  new ArrayList<Transaction>();
         balances = new ArrayList<Balance>();
 
-        if(NodeHolder.getInstance().getAccount() != null){ //user already logged
+        if(NodeHolder.getInstance().getCredentials() != null){ //user already logged
 
             createWalletViewerLayout();
             addOrUpdateWalletViewer();
@@ -294,7 +302,20 @@ public class EthereumWalletActivity extends BaseFragment {
 
         }
 
-        return fragmentView;
+        refreshLayout = new SwipeRefreshLayout(context);
+
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+
+                addOrUpdateWalletViewer();
+
+            }
+        });
+
+        refreshLayout.addView(fragmentView);
+
+        return refreshLayout;
 
     }
 
@@ -357,7 +378,7 @@ public class EthereumWalletActivity extends BaseFragment {
                 public void onClick(View v) {
 
                     SendDialog sendDialog;
-                    sendDialog=new SendDialog(context, balances);
+                    sendDialog=new SendDialog(context, balances, (Network) networkSelection.getSelectedItem());
                     sendDialog.show();
 
                 }
@@ -441,11 +462,13 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 try {
 
-                    KeyStore ks = new KeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+                    messageTextView.setText("Unlocking your account...");
 
-                    ks.unlock(ks.getAccounts().get(0), password.getText().toString());
+                    File file = new File(dir + "/keystore").listFiles()[0];
 
-                    NodeHolder.getInstance().setAccount(ks.getAccounts().get(0));
+                    Credentials credentials = WalletUtils.loadCredentials(password.getText().toString(), file.getPath());
+
+                    NodeHolder.getInstance().setCredentials(credentials);
 
                     return true;
 
@@ -470,11 +493,15 @@ public class EthereumWalletActivity extends BaseFragment {
 
                 try {
 
-                    KeyStore keyStore = Geth.newKeyStore(dir + "/keystore", Geth.LightScryptN, Geth.LightScryptP);
+                    messageTextView.setText("Creating your account...");
 
-                    Account account = keyStore.newAccount(password.getText().toString());
+                    new File(dir + "/keystore").mkdir();
 
-                    NodeHolder.getInstance().setAccount(account);
+                    String file = WalletUtils.generateLightNewWalletFile(password.getText().toString(), new File(dir + "/keystore"));
+
+                    Credentials credentials = WalletUtils.loadCredentials(password.getText().toString(), dir + "/keystore/" + file);
+
+                    NodeHolder.getInstance().setCredentials(credentials);
 
                     return true;
 
@@ -514,62 +541,13 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         ((ViewManager) passwordLayout.getParent()).removeView(passwordLayout);
 
+                        messageTextView.setText("Updating your account informations...");
                         createWalletViewerLayout();
                         addOrUpdateWalletViewer();
 
                     }
 
                 });
-
-            }
-
-        }
-
-    }
-
-    //Syncing a node needs to be done in background to not block the UI. Node synced only when sending a transaction.
-    private class ConnectNode extends AsyncTask{
-
-        public ConnectNode(){
-
-
-        }
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            Web3j web3j;
-
-            try {
-
-                if (  ((Network)networkSelection.getSelectedItem()).getName() == "Rinkeby"  ) {
-
-                    web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
-
-                } else {
-
-                    web3j = Web3jFactory.build(new HttpService("https://mainnet.infura.io/v3/" + BuildVars.INFURA_API));
-
-                }
-
-                NodeHolder.getInstance().setNode(web3j);
-
-                return true;
-
-            }catch (Exception e){
-
-                getParentActivity().runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-
-                        messageTextView.setText("Cannot connect to node\n" + e.getMessage());
-
-                    }
-
-                });
-
-                return false;
 
             }
 
@@ -607,8 +585,10 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
 
-            messageTextView.setText(NodeHolder.getInstance().getAccount().getAddress().getHex());
+            messageTextView.setText(NodeHolder.getInstance().getCredentials().getAddress());
             balanceTextView.setText(balances.get(0).getBalance() + " ETH");
+
+            refreshLayout.setRefreshing(false);
 
             Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
 
@@ -618,7 +598,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private class UpdateERC20Transactions extends AsyncTask{
 
-        String call = "/api?module=account&action=tokentx&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=999999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
+        String call = "/api?module=account&action=tokentx&address=" + NodeHolder.getInstance().getCredentials().getAddress() + "&startblock=0&endblock=999999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
 
         public UpdateERC20Transactions(String domainAPI){
 
@@ -675,7 +655,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
                             if(b.getTokenSymbol().equals(transaction.getTokenSymbol())){
 
-                                if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){ //transaction received
+                                if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getCredentials().getAddress().toLowerCase())){ //transaction received
 
                                     b.add(v);
 
@@ -717,7 +697,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private class UpdateTransactions extends AsyncTask{
 
-        String call = "/api?module=account&action=txlist&address=" + NodeHolder.getInstance().getAccount().getAddress().getHex() + "&startblock=0&endblock=99999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
+        String call = "/api?module=account&action=txlist&address=" + NodeHolder.getInstance().getCredentials().getAddress() + "&startblock=0&endblock=99999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
 
         public UpdateTransactions(String domainAPI){
 
@@ -762,7 +742,7 @@ public class EthereumWalletActivity extends BaseFragment {
 
                         transactions.add(transaction);
 
-                        if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getAccount().getAddress().getHex().toLowerCase())){ //transaction received
+                        if(transaction.getTo().toLowerCase().equals(NodeHolder.getInstance().getCredentials().getAddress().toLowerCase())){ //transaction received
 
                             balances.get(0).add(Convert.fromWei(transaction.getValue(), Convert.Unit.ETHER));
 
