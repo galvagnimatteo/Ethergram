@@ -27,6 +27,7 @@ import org.web3j.protocol.core.methods.request.RawTransaction;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -93,7 +94,7 @@ public class SendDialog extends Dialog {
 
             try {
 
-                if (  selectedNetwork.getName() == "Rinkeby"  ) {
+                if (selectedNetwork.getName().equals("Rinkeby")) {
 
                     web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
 
@@ -122,7 +123,7 @@ public class SendDialog extends Dialog {
 
             //-------------------------------END NODE CONNECTION------------------------------------
 
-            /*
+
 
             if(((Balance)tokenSelection.getSelectedItem()).getTokenSymbol() == "ETH"){
 
@@ -135,7 +136,11 @@ public class SendDialog extends Dialog {
                     BigInteger nonce = ethGetTransactionCount.getTransactionCount();
                     RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, BigInteger.valueOf(4_100_000_000L), BigInteger.valueOf(9_000_000),address.getText().toString(), value);
 
-                    //byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, );
+                    byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, NodeHolder.getInstance().getCredentials());
+
+                    String hexValue = Numeric.toHexString(signedMessage);
+
+                    NodeHolder.getInstance().getNode().ethSendRawTransaction(hexValue).send();
 
                 }catch (Exception e){
 
@@ -144,7 +149,7 @@ public class SendDialog extends Dialog {
                 }
             }
 
-             */
+
 
             return null;
 

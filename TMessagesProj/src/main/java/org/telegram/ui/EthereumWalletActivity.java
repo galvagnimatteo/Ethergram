@@ -107,6 +107,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private SwipeRefreshLayout refreshLayout;
 
+    private boolean isRefreshing = false;
+
     File dir;
 
     public EthereumWalletActivity(File dir) {
@@ -393,50 +395,56 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private void addOrUpdateWalletViewer(){
 
-        try {
+        if(!isRefreshing) {
 
-            String domainAPI;
+            isRefreshing = true;
 
-            if( ((Network)networkSelection.getSelectedItem()).getName() == "Rinkeby"  ){
+            try {
 
-                domainAPI = "https://api-rinkeby.etherscan.io";
+                String domainAPI;
 
-            }else{
+                if (((Network) networkSelection.getSelectedItem()).getName().equals("Rinkeby")) {
 
-                domainAPI = "https://api.etherscan.io";
+                    domainAPI = "https://api-rinkeby.etherscan.io";
+
+                } else {
+
+                    domainAPI = "https://api.etherscan.io";
+
+                }
+
+                int totalNumOfTasks = 2;
+                multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
+                    @Override
+                    protected void onAllTasksCompleted() {
+
+                        new onAllUpdated().execute();
+
+                    }
+                };
+
+                transactions.clear();
+                balances.clear();
+
+                balances.add(new Balance("ETH", BigDecimal.ZERO));
+
+                new UpdateTransactions(domainAPI).execute();
+                new UpdateERC20Transactions(domainAPI).execute();
+
+            } catch (Exception e) {
+
+                getParentActivity().runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        messageTextView.setText("Cannot update wallet\n" + e.getMessage());
+
+                    }
+
+                });
 
             }
-
-            int totalNumOfTasks = 2;
-            multiTaskHandler = new MultiTaskHandler(totalNumOfTasks) {
-                @Override
-                protected void onAllTasksCompleted() {
-
-                    new onAllUpdated().execute();
-
-                }
-            };
-
-            transactions.clear();
-            balances.clear();
-
-            balances.add(new Balance("ETH", BigDecimal.ZERO));
-
-            new UpdateTransactions(domainAPI).execute();
-            new UpdateERC20Transactions(domainAPI).execute();
-
-        }catch(Exception e){
-
-            getParentActivity().runOnUiThread(new Runnable() {
-
-                @Override
-                public void run() {
-
-                    messageTextView.setText("Cannot update wallet\n" + e.getMessage());
-
-                }
-
-            });
 
         }
 
@@ -585,10 +593,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
             }
 
-            messageTextView.setText(NodeHolder.getInstance().getCredentials().getAddress());
+            messageTextView.setText(NodeHolder.getInstance().getCredentials().getAddress().toUpperCase());
             balanceTextView.setText(balances.get(0).getBalance() + " ETH");
 
             refreshLayout.setRefreshing(false);
+            isRefreshing = false;
 
             Toast.makeText(context, "Wallet updated", Toast.LENGTH_LONG).show();
 
@@ -598,11 +607,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
     private class UpdateERC20Transactions extends AsyncTask{
 
-        String call = "/api?module=account&action=tokentx&address=" + NodeHolder.getInstance().getCredentials().getAddress() + "&startblock=0&endblock=999999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
+        String call = "/api?module=account&action=tokentx&address=" + NodeHolder.getInstance().getCredentials().getAddress().toLowerCase() + "&startblock=0&endblock=999999999&sort=asc&apikey=" + BuildVars.ETHERSCAN_API;
 
         public UpdateERC20Transactions(String domainAPI){
 
-            this.call = domainAPI + this.call;
+            this.call = domainAPI + call;
 
         }
 

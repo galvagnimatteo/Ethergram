@@ -58,7 +58,8 @@ public class BalanceSpinnerAdapter extends BaseAdapter {
         TextView valuebalance = (TextView) vi.findViewById(R.id.valuebalance);
 
         tokenSymbol.setText(balancesList.get(position).getTokenSymbol());
-        valuebalance.setText(balancesList.get(position).getBalance() + "");
+        valuebalance.setText(balancesList.get(position).getBalance().toPlainString());
+
 
         return vi;
     }
