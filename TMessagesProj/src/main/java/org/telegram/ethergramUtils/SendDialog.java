@@ -6,10 +6,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,13 +20,19 @@ import com.googlecode.mp4parser.authoring.Edit;
 
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.R;
+import org.w3c.dom.Text;
+import org.web3j.abi.Utils;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.TransactionEncoder;
+import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.RawTransaction;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
+import org.web3j.protocol.core.methods.response.EthSendRawTransaction;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
@@ -42,6 +50,7 @@ public class SendDialog extends Dialog {
     private Button sendButton;
     private EditText address;
     private EditText amount;
+    private TextView errorDisplay;
 
     public SendDialog(@NonNull Context context, ArrayList<Balance> balances, Network selectedNetwork) {
         super(context);
@@ -69,6 +78,7 @@ public class SendDialog extends Dialog {
 
         address = (EditText) this.findViewById(R.id.sendaddress);
         amount = (EditText) this.findViewById(R.id.sendvalue);
+        errorDisplay = (TextView) this.findViewById(R.id.errordisplayer);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -108,50 +118,78 @@ public class SendDialog extends Dialog {
 
             }catch (Exception e){
 
-                getOwnerActivity().runOnUiThread(new Runnable() {
+                errorDisplay.setText("Cant sync node");
 
-                    @Override
-                    public void run() {
-
-                        //TODO display error
-
-                    }
-
-                });
+                return null;
 
             }
 
             //-------------------------------END NODE CONNECTION------------------------------------
 
+            if(!WalletUtils.isValidAddress(address.getText().toString())){
 
+                errorDisplay.setText("Address not valid");
 
-            if(((Balance)tokenSelection.getSelectedItem()).getTokenSymbol() == "ETH"){
+                return null;
 
-                try {
+            }else {
 
-                    BigInteger value = Convert.toWei(amount.getText().toString(), Convert.Unit.ETHER).toBigInteger();
-                    EthGetTransactionCount ethGetTransactionCount = NodeHolder.getInstance().getNode().ethGetTransactionCount(
-                            NodeHolder.getInstance().getCredentials().getAddress(), DefaultBlockParameterName.LATEST).sendAsync().get();
+                if (((Balance) tokenSelection.getSelectedItem()).getTokenSymbol() == "ETH") {
 
-                    BigInteger nonce = ethGetTransactionCount.getTransactionCount();
-                    RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, BigInteger.valueOf(4_100_000_000L), BigInteger.valueOf(9_000_000),address.getText().toString(), value);
+                    try {
 
-                    byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, NodeHolder.getInstance().getCredentials());
+                        BigInteger value = Convert.toWei(amount.getText().toString(), Convert.Unit.ETHER).toBigInteger();
+                        EthGetTransactionCount ethGetTransactionCount = NodeHolder.getInstance().getNode().ethGetTransactionCount(
+                                NodeHolder.getInstance().getCredentials().getAddress(), DefaultBlockParameterName.LATEST).sendAsync().get();
 
-                    String hexValue = Numeric.toHexString(signedMessage);
+                        BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+                        RawTransaction rawTransaction = RawTransaction.createEtherTransaction(nonce, BigInteger.valueOf(4_100_000_000L), BigInteger.valueOf(9_000_000), address.getText().toString(), value);
 
-                    NodeHolder.getInstance().getNode().ethSendRawTransaction(hexValue).send();
+                        byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, NodeHolder.getInstance().getCredentials());
 
-                }catch (Exception e){
+                        String hexValue = Numeric.toHexString(signedMessage);
 
+                        EthSendTransaction sendTransaction = NodeHolder.getInstance().getNode().ethSendRawTransaction(hexValue).sendAsync().get();
 
+                        if (sendTransaction.hasError()) {
 
+                            errorDisplay.setText("Transaction has errors");
+
+                            return null;
+
+                        } else {
+
+                            errorDisplay.setText("Sending transaction...");
+
+                            EthGetTransactionReceipt transactionReceipt = NodeHolder.getInstance().getNode().ethGetTransactionReceipt(sendTransaction.getTransactionHash()).sendAsync().get();
+
+                            return transactionReceipt;
+
+                        }
+
+                    } catch (Exception e) {
+
+                        errorDisplay.setText("Cant send transaction");
+
+                        return null;
+
+                    }
                 }
+
             }
 
-
-
             return null;
+
+        }
+
+        @Override
+        public void onPostExecute(Object result){
+            /*
+            if(((EthGetTransactionReceipt)result).getTransactionReceipt() != null){
+
+                Toast.makeText(context, "Transaction sent: " + ((EthGetTransactionReceipt) result).getTransactionReceipt().getTransactionHash(), Toast.LENGTH_LONG).show();
+
+            }*/
 
         }
 

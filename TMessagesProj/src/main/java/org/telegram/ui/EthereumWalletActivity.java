@@ -1,5 +1,6 @@
 package org.telegram.ui;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -14,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewManager;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -282,6 +284,7 @@ public class EthereumWalletActivity extends BaseFragment {
                     @Override
                     public void onClick(View v) {
 
+                        hideKeyboardFrom(context, refreshLayout);
                         new PasswordTask(true).execute();
 
                     }
@@ -295,6 +298,7 @@ public class EthereumWalletActivity extends BaseFragment {
                     @Override
                     public void onClick(View v) {
 
+                        hideKeyboardFrom(context, refreshLayout);
                         new PasswordTask(false).execute();
 
                     }
@@ -645,6 +649,7 @@ public class EthereumWalletActivity extends BaseFragment {
                         String value = oneObject.getString("value");
                         String tokenSymbol = oneObject.getString("tokenSymbol");
                         String decimals = oneObject.getString("tokenDecimal");
+                        String gasUsed = oneObject.getString("cumulativeGasUsed");
 
                         ERC20Transaction transaction = new ERC20Transaction();
                         transaction.setFrom(from);
@@ -653,6 +658,7 @@ public class EthereumWalletActivity extends BaseFragment {
                         transaction.setTokenSymbol(tokenSymbol);
                         transaction.setTimestamp(timestamp);
                         transaction.setTokenDecimal(decimals);
+                        transaction.setGas(gasUsed);
 
                         transactions.add(transaction);
 
@@ -670,7 +676,11 @@ public class EthereumWalletActivity extends BaseFragment {
 
                                 }else{ //transaction sent
 
-                                    b.subtract(v);
+                                    if(transaction.getFrom().toLowerCase().equals(NodeHolder.getInstance().getCredentials().getAddress().toLowerCase())){
+
+                                        b.subtract(v.add(new BigDecimal(transaction.getGas())));
+
+                                    }
 
                                 }
 
@@ -742,12 +752,14 @@ public class EthereumWalletActivity extends BaseFragment {
                         String from = oneObject.getString("from");
                         String to = oneObject.getString("to");
                         String value = oneObject.getString("value");
+                        String gasUsed = oneObject.getString("cumulativeGasUsed");
 
                         Transaction transaction = new Transaction();
                         transaction.setFrom(from);
                         transaction.setTo(to);
                         transaction.setValue(value);
                         transaction.setTimestamp(timestamp);
+                        transaction.setGas(gasUsed);
 
                         transactions.add(transaction);
 
@@ -868,6 +880,10 @@ public class EthereumWalletActivity extends BaseFragment {
         }
     }
 
+    public static void hideKeyboardFrom(Context context, View view) {
+        InputMethodManager imm = (InputMethodManager) context.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+    }
 
 }
 
