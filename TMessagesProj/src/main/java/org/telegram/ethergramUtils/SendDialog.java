@@ -40,6 +40,8 @@ import org.web3j.utils.Numeric;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
+import rx.Subscription;
+
 public class SendDialog extends Dialog {
 
     private Context context;
@@ -98,33 +100,7 @@ public class SendDialog extends Dialog {
         @Override
         protected Object doInBackground(Object[] objects) {
 
-            //--------------------------------NODE CONNECTION---------------------------------------
-
-            Web3j web3j;
-
-            try {
-
-                if (selectedNetwork.getName().equals("Rinkeby")) {
-
-                    web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
-
-                } else {
-
-                    web3j = Web3jFactory.build(new HttpService("https://mainnet.infura.io/v3/" + BuildVars.INFURA_API));
-
-                }
-
-                NodeHolder.getInstance().setNode(web3j);
-
-            }catch (Exception e){
-
-                errorDisplay.setText("Cant sync node");
-
-                return null;
-
-            }
-
-            //-------------------------------END NODE CONNECTION------------------------------------
+            createNode();
 
             if(!WalletUtils.isValidAddress(address.getText().toString())){
 
@@ -161,9 +137,7 @@ public class SendDialog extends Dialog {
 
                             errorDisplay.setText("Sending transaction...");
 
-                            EthGetTransactionReceipt transactionReceipt = NodeHolder.getInstance().getNode().ethGetTransactionReceipt(sendTransaction.getTransactionHash()).sendAsync().get();
-
-                            return transactionReceipt;
+                            return sendTransaction;
 
                         }
 
@@ -190,6 +164,62 @@ public class SendDialog extends Dialog {
                 Toast.makeText(context, "Transaction sent: " + ((EthGetTransactionReceipt) result).getTransactionReceipt().getTransactionHash(), Toast.LENGTH_LONG).show();
 
             }*/
+
+            EthGetTransactionReceipt transactionReceipt;
+
+            if((EthSendTransaction)result != null){
+
+                try {
+
+                    while (true) {
+
+                        transactionReceipt = NodeHolder.getInstance().getNode().ethGetTransactionReceipt(((EthSendTransaction) result).getTransactionHash()).sendAsync().get();
+
+                        if (transactionReceipt.getResult() != null) {
+
+                            errorDisplay.setText("Mined on block " + transactionReceipt.getTransactionReceipt().getBlockNumberRaw());
+
+                            break;
+                        }
+
+                        Thread.sleep(15000);
+                    }
+
+                }catch (Exception e){
+
+                    e.printStackTrace();
+
+                    errorDisplay.setText("Cant get transaction receipt.");
+
+                }
+
+            }
+
+        }
+
+    }
+
+    private void createNode(){
+
+        Web3j web3j;
+
+        try {
+
+            if (selectedNetwork.getName().equals("Rinkeby")) {
+
+                web3j = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/" + BuildVars.INFURA_API));
+
+            } else {
+
+                web3j = Web3jFactory.build(new HttpService("https://mainnet.infura.io/v3/" + BuildVars.INFURA_API));
+
+            }
+
+            NodeHolder.getInstance().setNode(web3j);
+
+        }catch (Exception e){
+
+            errorDisplay.setText("Cant sync node");
 
         }
 
