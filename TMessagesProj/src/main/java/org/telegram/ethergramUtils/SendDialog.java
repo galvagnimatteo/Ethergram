@@ -20,6 +20,8 @@ import com.googlecode.mp4parser.authoring.Edit;
 
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.R;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.EthereumWalletActivity;
 import org.w3c.dom.Text;
 import org.web3j.abi.Utils;
 import org.web3j.crypto.Credentials;
@@ -53,12 +55,14 @@ public class SendDialog extends Dialog {
     private EditText address;
     private EditText amount;
     private TextView errorDisplay;
+    private EthereumWalletActivity baseActivity;
 
-    public SendDialog(@NonNull Context context, ArrayList<Balance> balances, Network selectedNetwork) {
+    public SendDialog(EthereumWalletActivity baseActivity, @NonNull Context context, ArrayList<Balance> balances, Network selectedNetwork) {
         super(context);
         this.context = context;
         this.balances = balances;
         this.selectedNetwork = selectedNetwork;
+        this.baseActivity = baseActivity;
     }
 
     @Override
@@ -104,11 +108,11 @@ public class SendDialog extends Dialog {
 
             if(!WalletUtils.isValidAddress(address.getText().toString())){
 
-                errorDisplay.setText("Address not valid");
+                errorDisplay.setText("Address is not valid");
 
                 return null;
 
-            }else {
+            }else{
 
                 if (((Balance) tokenSelection.getSelectedItem()).getTokenSymbol() == "ETH") {
 
@@ -135,8 +139,6 @@ public class SendDialog extends Dialog {
 
                         } else {
 
-                            errorDisplay.setText("Sending transaction...");
-
                             return sendTransaction;
 
                         }
@@ -158,40 +160,12 @@ public class SendDialog extends Dialog {
 
         @Override
         public void onPostExecute(Object result){
-            /*
-            if(((EthGetTransactionReceipt)result).getTransactionReceipt() != null){
-
-                Toast.makeText(context, "Transaction sent: " + ((EthGetTransactionReceipt) result).getTransactionReceipt().getTransactionHash(), Toast.LENGTH_LONG).show();
-
-            }*/
-
-            EthGetTransactionReceipt transactionReceipt;
 
             if((EthSendTransaction)result != null){
 
-                try {
+                baseActivity.createPendingTransactionTask((EthSendTransaction) result);
 
-                    while (true) {
-
-                        transactionReceipt = NodeHolder.getInstance().getNode().ethGetTransactionReceipt(((EthSendTransaction) result).getTransactionHash()).sendAsync().get();
-
-                        if (transactionReceipt.getResult() != null) {
-
-                            errorDisplay.setText("Mined on block " + transactionReceipt.getTransactionReceipt().getBlockNumberRaw());
-
-                            break;
-                        }
-
-                        Thread.sleep(15000);
-                    }
-
-                }catch (Exception e){
-
-                    e.printStackTrace();
-
-                    errorDisplay.setText("Cant get transaction receipt.");
-
-                }
+                baseActivity.dismissCurrentDialog();
 
             }
 

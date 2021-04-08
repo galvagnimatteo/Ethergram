@@ -55,6 +55,9 @@ import org.web3j.crypto.Keys;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
+import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 
@@ -110,6 +113,7 @@ public class EthereumWalletActivity extends BaseFragment {
     private SwipeRefreshLayout refreshLayout;
 
     private boolean isRefreshing = false;
+    private EthereumWalletActivity baseActivity;
 
     File dir;
 
@@ -123,6 +127,8 @@ public class EthereumWalletActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
+
+        baseActivity = this;
 
         this.context = context;
 
@@ -384,7 +390,7 @@ public class EthereumWalletActivity extends BaseFragment {
                 public void onClick(View v) {
 
                     SendDialog sendDialog;
-                    sendDialog=new SendDialog(context, balances, (Network) networkSelection.getSelectedItem());
+                    sendDialog = new SendDialog(baseActivity, context, balances, (Network) networkSelection.getSelectedItem());
                     sendDialog.show();
 
                 }
@@ -454,7 +460,54 @@ public class EthereumWalletActivity extends BaseFragment {
 
     }
 
+    public void createPendingTransactionTask(EthSendTransaction transaction){ //Executes when transaction is sent, fetch when it is mined
+
+        new PendingTransactionTask(transaction).execute();
+
+    }
+
     //-------------------------------------Async Tasks----------------------------------------------
+
+    private class PendingTransactionTask extends AsyncTask{
+
+        private EthSendTransaction transaction;
+
+        public PendingTransactionTask(EthSendTransaction transaction){
+
+            this.transaction = transaction;
+
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+
+            try {
+
+                while (true) {
+
+                    EthGetTransactionReceipt ethGetTransactionReceipt = NodeHolder.getInstance().getNode().ethGetTransactionReceipt((transaction).getTransactionHash()).sendAsync().get();
+
+                    if (ethGetTransactionReceipt.getResult() != null) {
+
+
+
+                        break;
+
+                    }
+
+                    Thread.sleep(15000);
+
+                }
+
+            }catch (Exception e){
+
+
+
+            }
+
+            return null;
+        }
+    }
 
     //Keystore operations needs to be done in async mode to not stop the UI.
     private class PasswordTask extends AsyncTask{
